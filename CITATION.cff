@@ -1,0 +1,29 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Undate overview notebook
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Rebecca Sutton
+    family-names: Koeser
+    affiliation: 'Center for Digital Humanities, Princeton University'
+    orcid: 'https://orcid.org/0000-0002-8762-8057'
+repository-code: 'https://github.com/rlskoeser/undate-notebook-usrse25'
+abstract: >-
+  A Jupyter notebook that provides an overview of the
+  functionality of the Undate python library, with
+  background information explaining why it was developed and
+  how it is useful.
+keywords:
+  - dates
+  - digital humanities
+  - uncertainty
+  - partial information
+license: Apache-2.0
+commit: '1.0'
+version: '1.0'
+date-released: '2025-05-09'
