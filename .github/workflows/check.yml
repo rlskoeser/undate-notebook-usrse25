@@ -1,0 +1,10 @@
+name: Check submission for USRSE'25
+
+on:
+  push:  # `on.push` means that the workflow will be triggered any time one or more commits are pushed to the repository
+
+jobs:
+  check-submission:  # `check-submission` is the job-id and can be chosen arbitrarily
+    uses: USRSE/notebooks-submissions/.github/workflows/check-submission.yml@v1
+    with:
+      notebook: undate-overview.ipynb
