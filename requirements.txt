@@ -1,2 +1,4 @@
 jupyterlab>=4.4.2
 undate>=0.4.0
+pandas>=2.2.3
+altair>=5.5.0
