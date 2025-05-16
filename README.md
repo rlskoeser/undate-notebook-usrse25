@@ -2,8 +2,8 @@
 
 by Rebecca Sutton Koeser
 
-This notebook provides a demonstration of the functionality
-[`Undate` python library](https://github.com/dh-tech/undate-python/).
+This notebook provides a demonstration of the functionality of the Python library
+[`Undate`](https://github.com/dh-tech/undate-python/).
 
 Undate is an ambitious, in-progress effort to develop a pragmatic Python library for computation and analysis of temporal information in humanistic and cultural data, with a particular emphasis on uncertain, incomplete, or imprecise dates and with support for multiple calendars.
 
