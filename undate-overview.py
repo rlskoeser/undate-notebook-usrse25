@@ -1142,40 +1142,14 @@ def _(mo):
 @app.cell
 def _(NOTEBOOK_PUBLIC_DIR, pd):
     # load a copy of PGP document data from the assets folder
-    pgp_documents = pd.read_csv(NOTEBOOK_PUBLIC_DIR / "pgp_documents.csv")
-
-    # limit to document dates with standardized format, so we have a comparison point
-    docs_with_docdate = pgp_documents[
-        pgp_documents.doc_date_standard.notna()
-    ].copy()
-    # limit to a subset of fields
-    docs_with_docdate = docs_with_docdate[
-        [
-            "pgpid",
-            "shelfmark",
-            "type",
-            "doc_date_original",
-            "doc_date_calendar",
-            "doc_date_standard",
-        ]
-    ]
-    # limit to the calendars undate currently supports
-    docs_with_docdate = docs_with_docdate[
-        docs_with_docdate.doc_date_calendar.isin(
-            ["Anno Mundi", "Hijrī", "Seleucid"]
-        )
-    ]
+    # pre-filtered to documents with standardized format, supported calendars, and subset of fields
+    # see filter script for specifics
+    docs_with_docdate = pd.read_csv(
+        NOTEBOOK_PUBLIC_DIR / "pgp_dated_documents.csv"
+    )
 
     docs_with_docdate.head()
     return (docs_with_docdate,)
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""Limiting to just the Hebrew and Islamic calendar dates still gives us a nice mix of content to work with."""
-    )
-    return
 
 
 @app.cell
