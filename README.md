@@ -13,18 +13,17 @@ Humanistic and cultural data also often includes dates in different calendars, o
 
 This notebook demonstrates current use and functionality of the core `Undate` and `UndateInterval` objects, along with some examples showing use-cases from two projects that fed into development on `undate`: [Shakespeare and Company Project](https://shakespeareandco.princeton.edu/), and [Princeton Geniza Project](https://geniza.princeton.edu/).
 
-*This is a notebook submission for US-RSE'25.*
+*This is a notebook submission for [US-RSE'25](https://us-rse.org/usrse25/).*
 
 ## Instructions
 
 Python dependencies are specified in `pyproject.toml`; use `pip`, `uv pip`, or similar to install them.
 
-Developed with Python 3.12; we recommend the use of a python virtual environment.
+Developed with Python 3.12 using [Marimo](https://marimo.io/); the use of a python virtual environment is recommended.
 
-For a complete install with [uv](https://docs.astral.sh/uv/):
+To install and run with with [uv](https://docs.astral.sh/uv/):
 
 ```sh
-uv venv
 uv sync
 uv run marimo edit undate-overview.py
 ```
