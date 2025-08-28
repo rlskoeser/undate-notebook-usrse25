@@ -99,11 +99,12 @@ def _(mo):
         label="Initialization options",
         value=first_option,
     )
-    return Undate, datetime, init_options
+    return Undate, datetime, display_opts, init_options
 
 
 @app.cell(hide_code=True)
-def _(Undate, datetime, init_options, mo):
+def _(Undate, datetime, display_opts, init_options, mo):
+    display_init_opts = display_opts(init_options.value)
     undate_obj = Undate(**init_options.value)
     dt_error_msg = ""
     try:
@@ -126,6 +127,7 @@ def _(Undate, datetime, init_options, mo):
     undate_display = mo.vstack(
         [
             mo.md("## `undate.Undate`"),
+            mo.md(f"`undate.Undate({display_init_opts})`"),
             mo.md(str(undate_obj)),
             mo.md(f"`{repr(undate_obj)}`"),
             mo.md(f"Date precision: {undate_obj.precision}"),
@@ -137,6 +139,7 @@ def _(Undate, datetime, init_options, mo):
     dt_display = mo.vstack(
         [
             mo.md("## `datetime.date`"),
+            mo.md(f"`datetime.date({display_init_opts})`"),
             mo.md(str(dt_obj)),
             mo.md(f"`{repr(dt_obj)}`" if dt_obj else "-"),
             mo.md("Date precision: day" if dt_obj else "-"),
@@ -1248,19 +1251,39 @@ def _(mo):
         code=mo.icon("material-symbols:code-blocks"),
     )
 
-    mo.md(
-        f"""
+    mo.vstack(
+        [
+            mo.md(
+                f"""
     ## Resources 
 
 
     - _Shakespeare and Company Project_. 2020. Publisher: Center for Digital Humanities, Princeton University. https://shakespeareandco.princeton.edu/. {my_icons.website}
     - _Princeton Geniza Project_. 2022. Publisher: Center for Digital Humanities, Princeton University. https://geniza.princeton.edu/. {my_icons.website}
     - Library of Congress. 2019. Extended Date Time Format (EDTF) Specification. Library of Congress, February. Accessed March 30, 2025. https://www.loc.gov/standards/datetime/. {my_icons.article}
+    - Koeser, Rebecca Sutton, Julia Damerow, Robert Casties, and Cole Crawford. “Undate: Humanistic Dates for Computation.” _Computational Humanities Research_, 2025, 1–10. https://doi.org/10.1017/chr.2025.10006. {my_icons.article}
     - Koeser, Rebecca Sutton, Cole Crawford, Julia Damerow, Malte Vogl, and Robert Casties. “Undate Python Library”. Zenodo, July 22, 2025. https://doi.org/10.5281/zenodo.16328670. {my_icons.code}
     - Koeser, Rebecca Sutton, and Zoe LeBlanc. 2024. Missing Data, Speculative Reading. _Journal of Cultural Analytics_ 9, no. 2 (May). https://doi.org/10.22148/001c.116926 {my_icons.article}
     - Koeser, Rebecca Sutton & Kotin, Joshua. (2025). Shakespeare and Company Project Datasets [Data set]. Version 2. Princeton University. https://doi.org/10.34770/kf6c-b079 {my_icons.dataset}
     - Kotin, Joshua and Rebecca Sutton Koeser. 2022. Shakespeare and Company Project Data Sets. _Journal of Cultural Analytics_ 7, no. 1 (February). https://doi.org/10.22148/001c.32551 {my_icons.article}
+    - Rustow, Marina, Rebecca Sutton Koeser, Rachel Richman, Ksenia Ryzhova, Amel Bensalim, and Abdellatif Mohamed. “Princeton Geniza Project dataset”. Zenodo, July 8, 2025. https://doi.org/10.5281/zenodo.15839056 {my_icons.dataset}
+
+    ------
+
+    #### Icon Legend
     """
+            ),
+            mo.hstack(
+                [
+                    mo.md(f"{my_icons.article} article"),
+                    mo.md(f"{my_icons.dataset} dataset"),
+                    mo.md(f"{my_icons.code} software"),
+                    mo.md(f"{my_icons.website} website"),
+                ],
+                gap=1,
+                justify="start",
+            ),
+        ]
     )
     return
 
