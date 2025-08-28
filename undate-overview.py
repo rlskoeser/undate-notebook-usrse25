@@ -12,13 +12,35 @@ app = marimo.App(
 def _():
     import marimo as mo
 
+    # path to public directory relative to this notebook
+    NOTEBOOK_PUBLIC_DIR = mo.notebook_location() / "public"
+    return NOTEBOOK_PUBLIC_DIR, mo
+
+
+@app.cell
+async def _():
+    import sys
+
+    # when running under WASM, use micropip to install necessary dependencies
+    if sys.platform == "emscripten":
+        import micropip
+
+        await micropip.install("polars")
+        # PyMeeus is a dependency of convertdate; for some reason micropip can't install it automatically
+        # await micropip.install(
+        # "https://www.piwheels.org/simple/pymeeus/PyMeeus-0.5.12-py3-none-any.whl#sha256=3fb4b35e1efa77bcde9c858f5749f2eb0b315a53caba7825d25b89cf24c1b47f"
+        # )
+        await micropip.install("undate")
+
     from undate import __version__ as undate_version
-    return mo, undate_version
+    return (undate_version,)
 
 
 @app.cell(hide_code=True)
 def _(mo, undate_version):
-    mo.md(f"""# Undate: computing with uncertain and partially-unknown dates
+    mo.md(
+        f"""
+    # Undate: computing with uncertain and partially-unknown dates
 
     `Undate` is an ambitious, in-progress effort to develop a pragmatic Python library for computation and analysis of temporal information in humanistic and cultural data, with a particular emphasis on uncertain, incomplete, or imprecise dates and with support for multiple calendars.
 
@@ -29,7 +51,8 @@ def _(mo, undate_version):
     This notebook demonstrates current use and functionality of the core `Undate` and `UndateInterval` objects, along with some examples and use-cases from specific projects.
 
     This notebook is written with `undate` version {undate_version}.
-    """)
+    """
+    )
     return
 
 
@@ -115,7 +138,7 @@ def _(Undate, datetime, display_opts, init_options, mo):
 
     undate_output = mo.md(f"""
         {undate_obj}
-    
+
         `{repr(undate_obj)}`
     """).callout("success")
 
@@ -908,7 +931,7 @@ def _(datetime, mo, pd):
     | -------------: | :----------: | :-----------: | :----------: | :-----------: |
     | `datetime.date` | `datetime.MINYEAR` | `datetime.MAXYEAR` | {datetime.MINYEAR} | {datetime.MAXYEAR} |
     | `pandas.Timestamp` | `pd.Timestamp.min.year` | `pd.Timestamp.max.year` | {pd.Timestamp.min.year} | {pd.Timestamp.max.year} |
-    | `numpy.datetime64[D]` | - | - | 2.5e16 BC | 2.5e16 AD | 
+    | `numpy.datetime64[D]` | - | - | 2.5e16 BC | 2.5e16 AD |
     """
     )
     return
@@ -930,7 +953,7 @@ def _(mo):
             ),
             # Render an local image
             mo.image(
-                src="assets/stein_lendingcard_unknownyear.jpg",
+                src="public/stein_lendingcard_unknownyear.jpg",
                 alt="Detail from one of Gertrude Stein's lending library cards",
                 width="70%",
                 caption="Gertrude Stein borrowing activity, unknown year",
@@ -946,10 +969,10 @@ def _(mo):
 
 
 @app.cell
-def _(pd):
+def _(NOTEBOOK_PUBLIC_DIR, pd):
     # load the 2.0 version of S&co events data from the assets folder
     events_df = pd.read_csv(
-        "assets/SCoData_events_v2.0_2025.csv", low_memory=False
+        NOTEBOOK_PUBLIC_DIR / "SCoData_events_v2.0_2025.csv", low_memory=False
     )
 
     # filter the full dataset to just borrowing events
@@ -1054,9 +1077,9 @@ def _(mo):
 
 
 @app.cell
-def _(pd):
+def _(NOTEBOOK_PUBLIC_DIR, pd):
     # load a copy of PGP document data from the assets folder
-    pgp_documents = pd.read_csv("assets/pgp_documents.csv")
+    pgp_documents = pd.read_csv(NOTEBOOK_PUBLIC_DIR / "pgp_documents.csv")
 
     # limit to document dates with standardized format, so we have a comparison point
     docs_with_docdate = pgp_documents[
