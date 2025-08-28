@@ -17,6 +17,14 @@ This notebook demonstrates current use and functionality of the core `Undate` an
 
 ## Instructions
 
-- Create a python virtual environment with python version 3.12
-- Run `pip install -r requirements.txt` install python dependencies
-- Run `jupyter notebook undate-overview.ipynb` to start the notebook.
+Python dependencies are specified in `pyproject.toml`; use `pip`, `uv pip`, or similar to install them.
+
+Developed with Python 3.12; we recommend the use of a python virtual environment.
+
+For a complete install with [uv](https://docs.astral.sh/uv/):
+
+```sh
+uv venv
+uv sync
+uv run marimo edit undate-overview.py
+```
