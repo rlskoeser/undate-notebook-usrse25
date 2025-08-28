@@ -11,10 +11,11 @@ app = marimo.App(
 @app.cell(hide_code=True)
 def _():
     import marimo as mo
+    import pandas as pd  # for min/max date range
 
     # path to public directory relative to this notebook
     NOTEBOOK_PUBLIC_DIR = mo.notebook_location() / "public"
-    return NOTEBOOK_PUBLIC_DIR, mo
+    return NOTEBOOK_PUBLIC_DIR, mo, pd
 
 
 @app.cell
@@ -27,13 +28,15 @@ async def _():
 
         await micropip.install("polars")
         # PyMeeus is a dependency of convertdate; for some reason micropip can't install it automatically
-        # await micropip.install(
-        # "https://www.piwheels.org/simple/pymeeus/PyMeeus-0.5.12-py3-none-any.whl#sha256=3fb4b35e1efa77bcde9c858f5749f2eb0b315a53caba7825d25b89cf24c1b47f"
-        # )
+        await micropip.install(
+            "https://www.piwheels.org/simple/pymeeus/PyMeeus-0.5.12-py3-none-any.whl#sha256=3fb4b35e1efa77bcde9c858f5749f2eb0b315a53caba7825d25b89cf24c1b47f"
+        )
         await micropip.install("undate")
 
+    import polars as pl
+
     from undate import __version__ as undate_version
-    return (undate_version,)
+    return pl, undate_version
 
 
 @app.cell(hide_code=True)
@@ -50,7 +53,7 @@ def _(mo, undate_version):
 
     This notebook demonstrates current use and functionality of the core `Undate` and `UndateInterval` objects, along with some examples and use-cases from specific projects.
 
-    This notebook is written with `undate` version {undate_version}.
+    This notebook is using `undate` version {undate_version}.
     """
     )
     return
@@ -122,13 +125,15 @@ def _(mo):
         label="Initialization options",
         value=first_option,
     )
-    return Undate, datetime, display_opts, init_options
+    return Undate, datetime, display_opts, init_options, option_values
 
 
 @app.cell(hide_code=True)
 def _(Undate, datetime, display_opts, init_options, mo):
     display_init_opts = display_opts(init_options.value)
+
     undate_obj = Undate(**init_options.value)
+
     dt_error_msg = ""
     try:
         dt_obj = datetime.date(**init_options.value)
@@ -190,127 +195,153 @@ def _(Undate, datetime, display_opts, init_options, mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""We can also compare them. Is this the same date?""")
-    return
-
-
-@app.cell
-def _(dt_november7, november7):
-    bool(november7 == dt_november7)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r""" """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r""" """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""We can also do some simple calculations, like checking whether one date falls within another date."""
-    )
-    return
-
-
-@app.cell
-def _(november, year2k):
-    november in year2k
-    return
-
-
-@app.cell
-def _(november7_1, year2k):
-    november7_1 in year2k
-    return
-
-
-@app.cell
-def _(november, november7_1):
-    november7_1 in november
-    return
-
-
-@app.cell
-def _(easter1916, year2k):
-    easter1916 in year2k
-    return
-
-
-@app.cell
-def _(november7_some_year, year2k):
-    november7_some_year in year2k
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r""" """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
     mo.md(
         r"""
+    ### Date Comparisons
+
+
+    We can also do some simple calculations, like checking whether one date falls within another date.
+
     When an `Undate` instance is initialized, internally the class calculates earliest and latest possible values for that date in the Gregorian calendar.
 
     This means that some comparisons are possible even without precise information.
 
     For instance, is a year sometime during the 1900s before a month in late 2022?
-    """
-    )
-    return
 
+    Uncertain dates with the same initial values aren't equal, since they are uncertain.
 
-@app.cell
-def _(late2022, someyear_1900s):
-    someyear_1900s < late2022
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""But uncertain dates with the same initial values aren't equal, since they are uncertain:"""
-    )
-    return
-
-
-@app.cell
-def _(Undate, late2022):
-    late2022 == Undate(2022, "1X")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
     The `Undate` class has properties to return `year`, `month`, and `day` if they are known. They are returned as strings to allow for partially unknown dates, and return `None` when a value is unknown.
-
-    Here are some examples from the dates we created earlier.
     """
     )
     return
 
 
 @app.cell
-def _(november7_1, someyear_1900s, year2k):
-    assert november7_1.year == "2000"
-    assert november7_1.month == "11"
-    assert november7_1.day == "07"
-    assert year2k.year == "2000"
-    assert year2k.month is None
-    assert year2k.day is None
-    assert someyear_1900s.year == "19XX"
+def _(Undate, option_values, pl):
+    sample_dates = [Undate(**opts) for opts in option_values]
+    # sample_dates.append(datetime.date(**option_values[0]))
+    sample_date_df = pl.DataFrame(
+        data={
+            "undate": sample_dates,
+            "year": [d.year for d in sample_dates],
+            "month": [d.month for d in sample_dates],
+            "day": [d.day for d in sample_dates],
+        }
+    )
+    sample_date_df
+    return (sample_dates,)
+
+
+@app.cell
+def _(mo):
+    comparison_opts = {
+        "equals : ==": "eq",
+        "in": "in",
+        "greater than : >": "gt",
+        "less than : <": "lt",
+    }
+
+    cmp_opt = mo.ui.radio(
+        options=comparison_opts,
+        label="Comparison operator",
+        value="equals : ==",
+    )
+    return (cmp_opt,)
+
+
+@app.cell
+def _(alt, cmp_opt, mo, pd, sample_dates):
+    from itertools import combinations
+
+
+    def compare(d1, d2):
+        result = None
+        result_text = None  # display version of result
+        op_str = ""  # display version of comparison operator
+        try:
+            if cmp_opt.value == "eq":
+                op_str = "=="
+                result = d1 == d2
+            elif cmp_opt.value == "in":
+                op_str = "in"
+                result = d1 in d2
+            elif cmp_opt.value == "gt":
+                op_str = ">"
+                result = d1 > d2
+            elif cmp_opt.value == "lt":
+                op_str = "<"
+                result = d1 < d2
+
+        except (TypeError, NotImplementedError):
+            result = None
+            result_text = "error"
+
+        if result_text is None:
+            if result == True:
+                result_text = "true"
+            elif result == False:
+                result_text = "false"
+            elif result is None:
+                result_text = "unknown"
+
+        return {
+            "date1": str(d1),
+            "date2": str(d2),
+            "result": result,
+            "result_str": result_text,
+            # construct a text version of the comparison so direction is clear,
+            # for comparisons where it matters
+            "text": f"{d1} {op_str} {d2} ? {result_text}",
+        }
+
+
+    results = []
+    # compare each pair of dates
+    for d1, d2 in combinations(sample_dates, 2):
+        # compare both directions
+        results.append(compare(d1, d2))
+        results.append(compare(d2, d1))
+
+    # also do self comparison
+    for d1 in sample_dates:
+        results.append(compare(d1, d1))
+
+    date_comparison_df = pd.DataFrame(data=results)
+
+    mo.vstack(
+        [
+            cmp_opt,
+            mo.ui.altair_chart(
+                alt.Chart(date_comparison_df)
+                .mark_rect()
+                .encode(
+                    y=alt.Y("date1", title=""),
+                    x=alt.X("date2", title=""),
+                    color=alt.Color("result_str", title="Result").scale(
+                        domain=["true", "false", "error", "unknown"],
+                        # range=["#4c78a8", "#e45756", "#f58518", "#bab0ac"],
+                    ),
+                    tooltip="text",
+                )
+                .properties(title=f"Date comparisions for: {cmp_opt.value}")
+            ),
+        ],
+        # align="center",
+    )
+    # NOTE: may need to adjust dates included to avoid undate bugs with unknown years
+    return (date_comparison_df,)
+
+
+@app.cell
+def _(date_comparison_df):
+    # display for debugging; remove later
+    date_comparison_df
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r""" """)
     return
 
 
@@ -629,8 +660,8 @@ def _(mo):
 
 
 @app.cell
-def _(november7_1):
-    november7_1.calendar
+def _():
+    # november7_1.calendar
     return
 
 
@@ -807,9 +838,7 @@ def _(tishrei3):
 
 
 @app.cell
-def _(Undate):
-    import pandas as pd
-
+def _(Undate, pl):
     calendars = ["Gregorian", "Hebrew", "Islamic"]
 
     calendar_dates = {
@@ -849,30 +878,43 @@ def _(Undate):
         ],
     }
 
-    cal_dates_df = pd.DataFrame.from_dict(calendar_dates)
-    # initialize an undate by parsing text values with specified calendar
-    cal_dates_df["undate"] = cal_dates_df.apply(
-        lambda row: Undate(*row.numeric, calendar=row.calendar), axis=1
-    )
-    # string representation of how you would intiialize an undate object with numbers and calendar
-    cal_dates_df["undate_str"] = cal_dates_df.apply(
-        lambda row: f"Undate({', '.join([str(n) for n in row.numeric])}, calendar='{row.calendar}')",
-        axis=1,
-    )
-    cal_dates_df["precision"] = cal_dates_df.undate.apply(
-        lambda x: str(x.precision).lower()
-    )
-    cal_dates_df["earliest_gregorian"] = cal_dates_df.undate.apply(
-        lambda x: x.earliest
-    )
-    cal_dates_df["latest_gregorian"] = cal_dates_df.undate.apply(
-        lambda x: x.latest
-    )
-    cal_dates_df["duration"] = cal_dates_df.undate.apply(
-        lambda x: x.duration().days
+    cal_dates_df = (
+        pl.from_dict(calendar_dates)
+        .with_columns(
+            # initialize an undate by parsing text values with specified calendar
+            undate=pl.struct("numeric", "calendar").map_elements(
+                lambda row: Undate(*row["numeric"], calendar=row["calendar"]),
+                return_dtype=pl.datatypes.Object,
+            ),
+            # string representation of how you would initialize an undate object with numbers and calendar
+            undate_str=pl.struct("numeric", "calendar").map_elements(
+                lambda row: f'Undate({", ".join([str(n) for n in row["numeric"]])}, calendar="{row["calendar"]}")',
+                return_dtype=pl.datatypes.String,
+            ),
+        )
+        .with_columns(
+            # additional columns based on undate object
+            precision=pl.col("undate").map_elements(
+                lambda x: str(x.precision).lower(),
+                return_dtype=pl.datatypes.String,
+            ),
+            earliest_gregorian=pl.col("undate").map_elements(
+                lambda x: x.earliest, return_dtype=pl.datatypes.Object
+            ),
+            latest_gregorian=pl.col("undate").map_elements(
+                lambda x: x.latest, return_dtype=pl.datatypes.Object
+            ),
+            duration=pl.col("undate").map_elements(
+                lambda x: x.duration().days
+                if isinstance(x.duration().days, int)
+                # handle uninteger; choose minimal value for now
+                else min(x.duration().days),
+                return_dtype=pl.datatypes.Int32,
+            ),
+        )
     )
     cal_dates_df
-    return (pd,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -969,82 +1011,103 @@ def _(mo):
 
 
 @app.cell
-def _(NOTEBOOK_PUBLIC_DIR, pd):
-    # load the 2.0 version of S&co events data from the assets folder
-    events_df = pd.read_csv(
-        NOTEBOOK_PUBLIC_DIR / "SCoData_events_v2.0_2025.csv", low_memory=False
+def _(NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
+    # load a filtered set of data from 2.0 version of S&co events data from the public folder
+    # NOTE: data has been prefiltered for efficiency; borrow events only, with start and end dates,
+    # and a subset of relevant fields. See filter_data script for specifics.
+    borrow_events = (
+        pl.read_csv(NOTEBOOK_PUBLIC_DIR / "SCoData_borrows_events.csv")
+        .with_columns(
+            start_undate=pl.col("start_date").map_elements(
+                lambda x: Undate.parse(x, "ISO8601"),
+                return_dtype=pl.datatypes.Object,
+            ),
+            end_undate=pl.col("end_date").map_elements(
+                lambda x: Undate.parse(x, "ISO8601"),
+                return_dtype=pl.datatypes.Object,
+            ),
+        )
+        .with_columns(
+            start_date_precision=pl.col("start_undate").map_elements(
+                lambda x: str(x.precision), return_dtype=pl.datatypes.String
+            ),
+            end_date_precision=pl.col("end_undate").map_elements(
+                lambda x: str(x.precision), return_dtype=pl.datatypes.String
+            ),
+        )
     )
 
-    # filter the full dataset to just borrowing events
-    borrow_events = events_df[events_df.event_type == "Borrow"]
-    # limit the dataframe to relevant fields
-    borrow_events = borrow_events[
-        ["start_date", "end_date", "member_names", "item_title", "item_authors"]
-    ]
-    # for convenience, filter to rows that have both start and end date
-    borrow_events = borrow_events[
-        borrow_events.start_date.notna() & borrow_events.end_date.notna()
-    ]
-    borrow_events.head(10)
-    return (borrow_events,)
 
-
-@app.cell
-def _(Undate, borrow_events):
-    borrow_events["start_undate"] = borrow_events.start_date.apply(
-        lambda x: Undate.parse(x, "ISO8601")
-    )
-    borrow_events["end_undate"] = borrow_events.end_date.apply(
-        lambda x: Undate.parse(x, "ISO8601")
-    )
-    borrow_events["start_date_precision"] = borrow_events.start_undate.apply(
-        lambda x: str(x.precision)
-    )
-    borrow_events["end_date_precision"] = borrow_events.end_undate.apply(
-        lambda x: str(x.precision)
-    )
-    borrow_events_1 = borrow_events[
-        (borrow_events.start_date_precision == "DAY")
-        & (borrow_events.end_date_precision == "DAY")
-    ]
-    borrow_events_1 = borrow_events_1.drop(
-        columns=["start_date_precision", "end_date_precision"]
-    )
-    borrow_events_1.head(10)
-    return (borrow_events_1,)
-
-
-@app.cell
-def _(borrow_events_1):
-    borrow_events_1[borrow_events_1.start_date == borrow_events_1.end_date]
-    return
-
-
-@app.cell
-def _(Undate, UndateInterval, borrow_events_1):
     def undate_duration(start, end):
         if start.known_year and (not end.known_year):
             start = Undate(month=start.month, day=start.day)
         try:
-            return UndateInterval(earliest=start, latest=end).duration().days
+            return UndateInterval(earliest=start, latest=end)
         except ValueError as err:
             if str(start) == str(end):
                 return 1
 
 
-    borrow_events_1["duration_days"] = borrow_events_1.apply(
-        lambda row: undate_duration(row.start_undate, row.end_undate), axis=1
-    )
-    borrow_events_1[
-        [
-            "start_undate",
-            "end_undate",
-            "member_names",
-            "item_title",
-            "item_authors",
-            "duration_days",
-        ]
-    ].head(10)
+    # # calculate durations; returns a dataframe with one column
+    # duration_df = borrow_events.select("start_undate", "end_undate").map_rows(
+    #     lambda x: undate_duration(x[0], x[1]), return_dtype=pl.datatypes.Int32
+    # )
+    # duration_df
+    # durations = borrow_events.select(
+    #     duration_days=pl.struct("start_undate", "end_undate").map_elements(
+    #         lambda row: undate_duration(row["start_undate"], row["end_undate"]),
+    #         # return_dtype=pl.datatypes.Object,
+    #     )
+    # )
+    # print(durations)
+    #
+
+    borrow_events.head(10)
+    return
+
+
+@app.cell
+def _():
+    # NOTE: this is too slow... switch back to pandas?
+    # calculate durations; returns a dataframe with one column
+    # duration_df = borrow_events.filter(pl.col("start_date_precision").eq("DAY"), pl.col("end_date_precision").eq("DAY").select("start_undate", "end_undate").map_rows(
+    #     lambda x: undate_duration(x[0], x[1]), return_dtype=pl.datatypes.Int32
+    # )
+    # duration_df
+    return
+
+
+@app.cell
+def _():
+    # borrow_events.filter(pl.col("start_date").eq(pl.col("end_date")))
+    return
+
+
+@app.cell
+def _():
+    # def undate_duration(start, end):
+    #     if start.known_year and (not end.known_year):
+    #         start = Undate(month=start.month, day=start.day)
+    #     try:
+    #         return UndateInterval(earliest=start, latest=end).duration().days
+    #     except ValueError as err:
+    #         if str(start) == str(end):
+    #             return 1
+
+
+    # borrow_events_1["duration_days"] = borrow_events_1.apply(
+    #     lambda row: undate_duration(row.start_undate, row.end_undate), axis=1
+    # )
+    # borrow_events_1[
+    #     [
+    #         "start_undate",
+    #         "end_undate",
+    #         "member_names",
+    #         "item_title",
+    #         "item_authors",
+    #         "duration_days",
+    #     ]
+    # ].head(10)
     return
 
 
@@ -1236,7 +1299,7 @@ def _(docs_with_undate):
     ).facet(
         row=alt.Facet("doc_date_calendar", title="Original Calendar")
     ).properties(title="Document frequency by month and calendar")
-    return
+    return (alt,)
 
 
 @app.cell(hide_code=True)
