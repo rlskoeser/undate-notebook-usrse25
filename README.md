@@ -27,3 +27,9 @@ To install and run with with [uv](https://docs.astral.sh/uv/):
 uv sync
 uv run marimo edit undate-overview.py
 ```
+
+
+### Scripts
+
+A utility script (`filter_data.py`) was added to pre-filter data used by the notebook,
+to make data loading more efficient.
