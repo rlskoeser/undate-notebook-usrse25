@@ -464,7 +464,7 @@ def _(Undate):
     _monthday = Undate.parse("--04-12", "ISO8601")
     assert str(_monthday) == "--04-12"
     assert _monthday.precision == DatePrecision.DAY
-    return (DatePrecision,)
+    return DatePrecision, ISO8601DateFormat
 
 
 @app.cell(hide_code=True)
@@ -1011,7 +1011,9 @@ def _(mo):
 
 
 @app.cell
-def _(NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
+def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
+    from undate.date import ONE_DAY
+
     # load a filtered set of data from 2.0 version of S&co events data from the public folder
     # NOTE: data has been prefiltered for efficiency; borrow events only, with start and end dates,
     # and a subset of relevant fields. See filter_data script for specifics.
@@ -1035,79 +1037,160 @@ def _(NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
                 lambda x: str(x.precision), return_dtype=pl.datatypes.String
             ),
         )
+        .filter(
+            # filter to day-level precision since that's currently needed to calculate duration
+            pl.col("start_date_precision").eq("DAY"),
+            pl.col("end_date_precision").eq("DAY"),
+        )
     )
 
 
-    def undate_duration(start, end):
-        if start.known_year and (not end.known_year):
-            start = Undate(month=start.month, day=start.day)
-        try:
-            return UndateInterval(earliest=start, latest=end)
-        except ValueError as err:
-            if str(start) == str(end):
-                return 1
+    def undate_duration(start_date, end_date):
+        # treat a same-day return as a one day borrow
+        if start_date == end_date:
+            return ONE_DAY
+        isoformat = ISO8601DateFormat()
+
+        unstart = isoformat.parse(start_date)
+        unend = isoformat.parse(end_date)
+        # if start year is known but end is not, make them both unknown
+        # (assume same/subsequent year)
+        if unstart.known_year and (not unend.known_year):
+            unstart = Undate(month=unstart.month, day=unstart.day)
+        interval = UndateInterval(earliest=unstart, latest=unend)
+
+        # borrow durations in Shakespeare and Company Project were defined as not including both ends (or half both ends)
+        # to reconcile differences between duration logic with undate, which includes both endpoints, we subtract one day
+        return (interval.duration() - ONE_DAY).days
 
 
-    # # calculate durations; returns a dataframe with one column
-    # duration_df = borrow_events.select("start_undate", "end_undate").map_rows(
-    #     lambda x: undate_duration(x[0], x[1]), return_dtype=pl.datatypes.Int32
-    # )
-    # duration_df
-    # durations = borrow_events.select(
-    #     duration_days=pl.struct("start_undate", "end_undate").map_elements(
-    #         lambda row: undate_duration(row["start_undate"], row["end_undate"]),
-    #         # return_dtype=pl.datatypes.Object,
-    #     )
-    # )
-    # print(durations)
-    #
+    # calculate durations; returns a dataframe with one column
+    duration_df = borrow_events.select("start_date", "end_date").map_rows(
+        lambda x: undate_duration(x[0], x[1]), return_dtype=pl.datatypes.Int32
+    )
+
+    # add fields to the main dataframe for duration and whether year is known
+    borrow_events = borrow_events.with_columns(
+        undate_duration=duration_df["map"],
+        known_year=borrow_events["start_undate"].map_elements(
+            lambda x: "known" if x.known_year else "unknown",
+            return_dtype=pl.datatypes.String,
+        ),
+    )
 
     borrow_events.head(10)
-    return
+    return (borrow_events,)
 
 
 @app.cell
-def _():
-    # NOTE: this is too slow... switch back to pandas?
-    # calculate durations; returns a dataframe with one column
-    # duration_df = borrow_events.filter(pl.col("start_date_precision").eq("DAY"), pl.col("end_date_precision").eq("DAY").select("start_undate", "end_undate").map_rows(
-    #     lambda x: undate_duration(x[0], x[1]), return_dtype=pl.datatypes.Int32
-    # )
-    # duration_df
-    return
+def _(alt):
+    def raincloud_plot(dataset, fieldname, field_label, color_opts=None):
+        """Create a raincloud plot for the density of the specified field
+        in the given dataset. Takes an optional tooltip for the strip plot.
+        Returns an altair chart."""
+
+        # create a density area plot of specified fieldname
+
+        duration_density = (
+            alt.Chart(dataset)
+            .transform_density(
+                fieldname,
+                as_=[fieldname, "density"],
+            )
+            .mark_area(orient="vertical")
+            .encode(
+                x=alt.X(
+                    fieldname, title=None, axis=alt.X(labels=False, ticks=False)
+                ),
+                y=alt.Y(
+                    "density:Q",
+                    # suppress labels and ticks because we're going to combine this
+                    title=None,
+                    axis=alt.Axis(
+                        labels=False, values=[0], grid=False, ticks=False
+                    ),
+                ),
+            )
+            .properties(height=100, width=800)
+        )
+
+        # Now create jitter plot of the same field
+        # jittering / stripplot adapted from https://stackoverflow.com/a/71902446/9706217
+
+        chart_color_opts = {}
+        if color_opts is not None:
+            chart_color_opts = {"color": color_opts}
+
+        stripplot = (
+            alt.Chart(dataset)
+            .mark_circle(size=50)
+            .encode(
+                x=alt.X(
+                    fieldname,
+                    title=field_label,
+                    axis=alt.Axis(labels=True),
+                ),
+                y=alt.Y("jitter:Q", title=None, axis=None),
+                **chart_color_opts,
+                # color=alt.Color(color_by),  # .scale(**color_scale),
+            )
+            .transform_calculate(jitter="(random() / 200) - 0.0052")
+            .properties(
+                height=120,
+                width=800,
+            )
+        )
+
+        # use vertical concat to combine the two plots together
+        raincloud_plot = alt.vconcat(duration_density, stripplot).configure_concat(
+            spacing=0
+        )
+        return raincloud_plot
+    return (raincloud_plot,)
 
 
 @app.cell
-def _():
-    # borrow_events.filter(pl.col("start_date").eq(pl.col("end_date")))
-    return
+def _(borrow_events, mo, pl):
+    members_with_unknownyears = (
+        borrow_events.filter(pl.col("known_year").eq("unknown"))
+        .select("member_names")
+        .unique()
+    )
+    # get counts and filter to members with at laest two borrows
+    borrow_counts = borrow_events.group_by("member_names").len()
+    members_with_unknownyears = members_with_unknownyears.join(
+        borrow_counts, on="member_names"
+    ).filter(pl.col("len").gt(2))
+
+    members_with_unknowns = members_with_unknownyears["member_names"].to_list()
+
+
+    member_opt = mo.ui.radio(
+        options=members_with_unknowns,
+        label="Library Member",
+        value="Gertrude Stein",
+    )
+    return (member_opt,)
 
 
 @app.cell
-def _():
-    # def undate_duration(start, end):
-    #     if start.known_year and (not end.known_year):
-    #         start = Undate(month=start.month, day=start.day)
-    #     try:
-    #         return UndateInterval(earliest=start, latest=end).duration().days
-    #     except ValueError as err:
-    #         if str(start) == str(end):
-    #             return 1
-
-
-    # borrow_events_1["duration_days"] = borrow_events_1.apply(
-    #     lambda row: undate_duration(row.start_undate, row.end_undate), axis=1
-    # )
-    # borrow_events_1[
-    #     [
-    #         "start_undate",
-    #         "end_undate",
-    #         "member_names",
-    #         "item_title",
-    #         "item_authors",
-    #         "duration_days",
-    #     ]
-    # ].head(10)
+def _(alt, borrow_events, member_opt, mo, pl, raincloud_plot):
+    mo.vstack(
+        [
+            member_opt,
+            mo.ui.altair_chart(
+                raincloud_plot(
+                    # filter to selected member
+                    borrow_events.filter(
+                        pl.col("member_names").eq(member_opt.value)
+                    ).select("undate_duration", "known_year"),
+                    "undate_duration",
+                    "Borrow duration in days",
+                    alt.Color("known_year", title="Year"),
+                ).properties(title=f"Borrows for {member_opt.value}")
+            ),
+        ]
+    )
     return
 
 
@@ -1220,6 +1303,25 @@ def _(docs_with_undate):
     docs_with_undate["undate_latest"] = docs_with_undate.undate_orig.apply(
         lambda x: x.latest
     ).astype("datetime64[s]")
+
+    docs_with_undate["orig_date_precision"] = docs_with_undate.undate_orig.apply(
+        lambda x: str(x.precision).lower()
+    )
+
+    days = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+
+    docs_with_undate["undate_weekday"] = docs_with_undate.undate_orig.apply(
+        lambda x: days[x.earliest.weekday] if x.earliest == x.latest else None
+    )
+
     # limit and order fields to help make the comparison
     docs_with_undate[
         [
@@ -1229,9 +1331,11 @@ def _(docs_with_undate):
             "doc_date_standard",
             "undate_earliest",
             "undate_latest",
+            "orig_date_precision",
+            "undate_weekday",
         ]
     ].head(10)
-    return
+    return (days,)
 
 
 @app.cell
@@ -1280,6 +1384,39 @@ def _(docs_with_undate):
 def _(mo):
     mo.md(
         r"""There's a month 13 that doesn't exist in the Islamic calendar, shows up on the Hebrew calendar with much fewer documents — that's because the Hebrew calendar includes a leap _month_. Because that month doesn't happen every year, we would expect to see far fewer documents - as evidenced in the heatmap."""
+    )
+    return
+
+
+@app.cell
+def _(docs_with_undate):
+    docs_with_undate[docs_with_undate.orig_date_precision == "day"][
+        ["type", "undate_weekday", "pgpid"]
+    ]
+    return
+
+
+@app.cell
+def _(alt, days, docs_with_undate):
+    alt.Chart(
+        docs_with_undate[docs_with_undate.orig_date_precision == "day"][
+            docs_with_undate.type.isin(
+                ["Letter", "Legal document", "State document", "List or table"]
+            )
+        ][["type", "undate_weekday", "pgpid"]]
+    ).mark_rect().encode(
+        alt.X("undate_weekday", sort=days, title="weekday"),
+        alt.Color("count(pgpid)", title="# of documents"),
+    ).facet(
+        row=alt.Facet(
+            "type",
+            title="",
+            header=alt.Header(
+                labelAngle=0, labelAnchor="start", labelBaseline="bottom"
+            ),
+        )
+    ).resolve_scale(color="independent").properties(
+        title="Document frequency by weekday"
     )
     return
 
