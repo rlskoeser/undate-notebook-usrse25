@@ -41,8 +41,10 @@ async def _():
 
 @app.cell(hide_code=True)
 def _(mo, undate_version):
-    mo.md(
-        f"""
+    mo.vstack(
+        [
+            mo.md(
+                f"""
     # Undate: computing with uncertain and partially-unknown dates
 
     `Undate` is an **ambitious, in-progress effort** to develop a **pragmatic Python library** for computation and analysis of temporal information in humanistic and cultural data, with a particular emphasis on **uncertain, incomplete, or imprecise dates** and with support for **multiple calendars**.
@@ -53,8 +55,19 @@ def _(mo, undate_version):
 
     This notebook demonstrates current use and functionality of the core `Undate` and `UndateInterval` objects, along with some examples and use-cases from specific projects.
 
-    This notebook is using `undate` version {undate_version}.
-    """
+
+    ----"""
+            ),
+            mo.hstack(
+                [
+                    mo.md("""**Rebecca Sutton Koeser**<br/>
+    Lead Research Software Engineer, Center for Digital Humanities @ Princeton</br>
+    *US-RSE'25 notebook presentation*
+            """),
+                    mo.md(f"`undate` v{undate_version}"),
+                ]
+            ),
+        ]
     )
     return
 
@@ -427,7 +440,7 @@ def _(Undate, pl):
             "precision": [str(d.precision) for d in parse_dates],
         }
     )
-    return DatePrecision, ISO8601DateFormat, parse_examples_df
+    return ISO8601DateFormat, parse_examples_df
 
 
 @app.cell(hide_code=True)
@@ -438,11 +451,9 @@ def _(mo, parse_examples_df):
                 r"""
     ### ISO8601
 
-    **ISO 8601** is an international standard for dates (see [Wikipedia ISO 8601 entry](https://en.wikipedia.org/wiki/ISO_8601) for more details). For Calendar dates, this format uses the familiar **YYYY-MM-DD** notation for full dates, **YYYY-MM** for year and month. Some earlier versions of the specification allowed formats like **--MM-DD** for dates when month and day are known but the year is not.
+    **ISO 8601** is an international standard for dates (see [Wikipedia ISO 8601 entry](https://en.wikipedia.org/wiki/ISO_8601) for more details). For Calendar dates, this format uses the familiar **YYYY-MM-DD** notation for full dates, **YYYY-MM** for year and month. Some earlier versions of the specification allowed formats like **--MM-DD** for dates when month and day are known but the year is not. A converter can be used directly by the class, or can be parsed by the name of the converter.
 
-    A converter can be used directly by the class, or can be parsed by the name of the converter.
-
-    Here are some examples. In this case, we set the default converter to ISO8601 so that the string format will serialize the date back out to the original format.
+    In these examples, we set the default converter to ISO8601 so that the string format will serialize the date back out to the original format. It is also possible to output in a different format.
 
     ```python
     from undate.date import DatePrecision
@@ -455,8 +466,11 @@ def _(mo, parse_examples_df):
     """
             ),
             parse_examples_df,
-            mo.md(r"""
-    If you try to parse something that isn't supported by the format or the parser, the method raises a `ValueError` exception with the error message from the parser.
+            mo.hstack(
+                [
+                    mo.md(r"""
+    If you try to parse something that isn't supported by the format or the parser, the method raises a `ValueError` exception with the error message from the parser."""),
+                    mo.md("""
     ```python
     try:
         Undate.parse("????-04-12", "ISO8601")
@@ -465,6 +479,8 @@ def _(mo, parse_examples_df):
     ```
     `invalid literal for int() with base 10: '????'`
     """),
+                ]
+            ),
         ]
     )
     return
@@ -553,190 +569,26 @@ def _(mo):
 
     `undate` includes a [BaseCalendarConverter](https://undate-python.readthedocs.io/en/latest/undate/converters.html#undate.converters.base.BaseCalendarConverter), as a special case of the `BaseDateConverter` for format parsing and conversion like ISO8601 and EDTF. In addition the `parse()` method that all converters must implement, calendar converters have logic for returning minimum and maximum month and day, first and last month as integers (since some calendars don't start the year on month 1), and a `to_gregorian()` method to convert into a standard Gregorian date. `undate` usees the [convertdate](https://github.com/fitnr/convertdate) Python library for the actual numeric conversion.
 
+    Supported calendars:
 
-    ### Gregorian calendar
+    - Gregorian
+    - Islamic Hijri
+    - Hebrew Anno Mundi
+    - Seleucid Hebrew calendar
+
 
     An `Undate` instance always has a calendar defined; it uses the Gregorian calendar if a calendar is not specified.  You may have noticed this in the output from `repr()` in the earlier examples.
 
+    `undate` preserves the numeric values of the date in the original calendar, but internally converts to Gregorian calendar for comparison with other dates. `Undate` instances with different calendars can be used together.
+
+    This means that two `Undate` objects with the same numeric day, month, and year values represent different dates if they use different calendars.  This also means that we can preserve the precision of the date in the original calendar (such as a month or a year), even when that doesn't neatly map to a month or year in the Gregorian calendar and even if a month or year has a different number of days than we're used to.
     """
     )
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Islamic Hijri calendar""")
-    return
-
-
-@app.cell
-def _(DatePrecision, Undate):
-    from undate import Calendar
-
-    # Monday, 7 Jumādā I 1243 Hijrī (26 November, 1827 CE); Jumada I = month 5
-    hijri_date = Undate.parse("7 Jumādā I 1243", "Islamic")
-    assert hijri_date == Undate(1243, 5, 7, calendar="Islamic")
-    assert hijri_date.calendar == Calendar.ISLAMIC
-    assert hijri_date.precision == DatePrecision.DAY
-    return Calendar, hijri_date
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""We preserve the numeric values of the date in the original calendar, but internally `Undate` converts to Gregorian calendar for comparison with other days."""
-    )
-    return
-
-
-@app.cell
-def _(hijri_date):
-    assert hijri_date.year == "1243"
-    assert hijri_date.month == "05"
-    assert hijri_date.day == "07"
-    print(hijri_date.earliest)  # Gregorian equivalent
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""By default, the original text value of the parsed date and the calendar are presreved in the label of the `Undate` object:"""
-    )
-    return
-
-
-@app.cell
-def _(hijri_date):
-    print(hijri_date.label)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""As with other formats, we support different date precisions:""")
-    return
-
-
-@app.cell
-def _(Calendar, DatePrecision, Undate):
-    from undate.date import Date
-
-    # month and year only
-    hijri_yearmonth = Undate.parse("Rajab 495", "Islamic")
-    assert hijri_yearmonth == Undate(
-        495, 7, calendar="Islamic"
-    )  # Rajab is month 7
-    assert hijri_yearmonth.calendar == Calendar.ISLAMIC
-    assert hijri_yearmonth.precision == DatePrecision.MONTH
-    # Gregorian earliest/latest
-    assert hijri_yearmonth.earliest == Date(1102, 4, 28)
-    assert hijri_yearmonth.latest == Date(1102, 5, 27)
-    print(
-        f"{hijri_yearmonth.earliest}/{hijri_yearmonth.latest}"
-    )  # Gregorian date range
-    return (Date,)
-
-
-@app.cell
-def _(Calendar, Date, DatePrecision, Undate):
-    # year only
-    hijri_year = Undate.parse("441", "Islamic")
-    assert hijri_year == Undate(441, calendar="Islamic")
-    assert hijri_year.calendar == Calendar.ISLAMIC
-    assert hijri_year.precision == DatePrecision.YEAR
-    # Gregorian earliest/ latest
-    assert hijri_year.earliest == Date(1049, 6, 11)
-    assert hijri_year.latest == Date(1050, 5, 31)
-    print(f"{hijri_year.earliest}/{hijri_year.latest}")  # Gregorian date range
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ### Hebrew Anno Mundi calendar
-
-    Support for the Hebrew calendar is similar to the Islamic.
-    """
-    )
-    return
-
-
-@app.cell
-def _(Calendar, DatePrecision, Undate):
-    # 26 Tammuz 4816: Tammuz = month 4 (17 July, 1056 Gregorian)
-    hebrew_date = Undate.parse("26 Tammuz 4816", "Hebrew")
-    assert hebrew_date == Undate(4816, 4, 26, calendar="Hebrew")
-    assert hebrew_date.calendar == Calendar.HEBREW
-    assert hebrew_date.precision == DatePrecision.DAY
-    print(hebrew_date.earliest)  # Gregorian equivalent
-    print(hebrew_date.label)
-    return
-
-
-@app.cell
-def _(Calendar, DatePrecision, Undate):
-    # year month
-    hebrew_yearmonth = Undate.parse("Ṭevet 5362", "Hebrew")
-    assert hebrew_yearmonth == Undate(
-        5362, 10, calendar="Hebrew"
-    )  # Teveth = month 10
-    assert hebrew_yearmonth.calendar == Calendar.HEBREW
-    assert hebrew_yearmonth.precision == DatePrecision.MONTH
-    print(
-        f"{hebrew_yearmonth.earliest}/{hebrew_yearmonth.latest}"
-    )  # Gregorian date range
-    return
-
-
-@app.cell
-def _(Calendar, DatePrecision, Undate):
-    # year
-    hebrew_year = Undate.parse("4932", "Hebrew")
-    assert hebrew_year == Undate(4932, calendar="Hebrew")
-    assert hebrew_year.calendar == Calendar.HEBREW
-    assert hebrew_year.precision == DatePrecision.YEAR
-    print(f"{hebrew_year.earliest}/{hebrew_year.latest}")  # Gregorian date range
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    Because we preserve the numeric date values in the original calendar, this means that two `Undate` objects with the same numeric day, month, and year values represent different dates if they use different calendars.  This also means that we can preserve the precision of the date in the original calendar (such as a month or a year), even when that doesnn't neatly map to a month or year in the Gregorian calendar, since they may have a different number of days.
-
-    Since `Undate` converts to the common Gregorian calendar for comparison and determines earliest and latest possible dates, `Undate` instances with different calendars can be used together.
-    """
-    )
-    return
-
-
-@app.cell
-def _(Undate):
-    # 21 Rajab 1023 Hijrī (27 August 1614 CE)
-    rajab21 = Undate.parse("21 Rajab 1023", "Islamic")
-    # 3 Tishrei 5370 Anno Mundi (1 October 1609 CE)
-    tishrei3 = Undate.parse("3 Tishrei 5370", "Hebrew")
-    return rajab21, tishrei3
-
-
-@app.cell
-def _(rajab21):
-    rajab21
-    return
-
-
-@app.cell
-def _(tishrei3):
-    tishrei3
-    return
-
-
-@app.cell(hide_code=True)
-def _(Undate, pl):
+def _(Undate, mo, pl):
     calendars = ["Gregorian", "Hebrew", "Islamic"]
 
     calendar_dates = {
@@ -811,42 +663,15 @@ def _(Undate, pl):
             ),
         )
     ).drop("numeric")
-    cal_dates_df
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""This table shows dates with varying precision from three different calendars, with their numeric values in the original calendar and earliest and latest Gregorian dates."""
+    mo.vstack(
+        [
+            mo.md(
+                "This table shows dates with varying precision from three different calendars, with their numeric values in the original calendar and earliest and latest Gregorian dates."
+            ),
+            cal_dates_df,
+        ]
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    * * *
-
-    Because internally we convert to a common calendar, these dates can be used together.
-    """
-    )
-    return
-
-
-@app.cell
-def _(Undate, rajab21, tishrei3):
-    june1663 = Undate(1663, 6)
-
-    sorted_mix = sorted([rajab21, tishrei3, june1663])
-    print("\n".join([repr(d) for d in sorted_mix]))
-    return (sorted_mix,)
-
-
-@app.cell
-def _(sorted_mix):
-    print("\n".join([repr(d.earliest) for d in sorted_mix]))
     return
 
 
@@ -900,7 +725,7 @@ def _(mo):
             ),
             mo.md(r"""This project provides an example of how partially unknown dates can still be computationally useful. If we make the reasonable assumption that for borrowing activity like this, with an unknown year, books were returned in the same or following year, then we can calculate how long the books were borrowed and include them in analysis of library member activities.
 
-    Here we demonstrate this using the borrowing events from the Shakespeare and Company Project 2.0 dataset.
+    Here I demonstrate this using borrowing events from the Shakespeare and Company Project 2.0 dataset.
     """),
         ],
         align="center",
@@ -909,7 +734,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
+def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, mo, pl):
     from undate.date import ONE_DAY
 
     # load a filtered set of data from 2.0 version of S&co events data from the public folder
@@ -976,7 +801,14 @@ def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
         ),
     )
 
-    borrow_events.head(10)
+    mo.vstack(
+        [
+            mo.md(
+                "This subset of the borrowing data shows events with dates but no known year."
+            ),
+            borrow_events.head(10),
+        ]
+    )
     return (borrow_events,)
 
 
@@ -1075,6 +907,10 @@ def _(borrow_events, mo, pl):
 def _(alt, borrow_events, member_opt, mo, pl, raincloud_plot):
     mo.vstack(
         [
+            mo.md("""### Library Member borrowing duration
+
+            This raincloud plot showing the distribution of borrowing duration for members with borrow events without known years.  That is, how long did they typically keep the books that they borrowed?
+            """),
             member_opt,
             mo.ui.altair_chart(
                 raincloud_plot(
@@ -1087,36 +923,15 @@ def _(alt, borrow_events, member_opt, mo, pl, raincloud_plot):
                     alt.Color("known_year", title="Year"),
                 ).properties(title=f"Borrows for {member_opt.value}")
             ),
+            mo.md(
+                "The capability to calculate durations for partially known dates means this information can be included in analysis and interpretation of member borrowing activity, such as books that were borrowed and returned quickly or checked out for longer times, and included in broader analysis of borrowing behavior across all library members or specific individuals."
+            ),
         ]
     )
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""Being able to calculate durations for partially known dates means they can be included in analysis and interpretation of member borrowing activity, such as books that were borrowed and returned quickly or checked out for longer times, and included in broader analysis of borrowing behavior across all library members or specific individuals."""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ### Princeton Geniza Project
-
-    The [Princeton Geniza Project](https://geniza.princeton.edu/) is a database of texts that were preserved in a medieval synagogue in Cairo, Egypt.
-
-    The texts are predominantly written in Hebrew script, are often fragmentary, and in many cases they are difficult to place in time. Because of the context of these materials, they use a mix of calendars.
-
-    Here we demonstrate undate capabilities using the set of documents with known dates set in the metadata.  The dataset includes original dates and calendars and standardized dates (using Common Era dates; Julian before 1583, Gregorian after).
-    """
-    )
-    return
-
-
-@app.cell
 def _(NOTEBOOK_PUBLIC_DIR, pd):
     # load a copy of PGP document data from the assets folder
     # pre-filtered to documents with standardized format, supported calendars, and subset of fields
@@ -1124,14 +939,28 @@ def _(NOTEBOOK_PUBLIC_DIR, pd):
     docs_with_docdate = pd.read_csv(
         NOTEBOOK_PUBLIC_DIR / "pgp_dated_documents.csv"
     )
-
-    docs_with_docdate.head()
     return (docs_with_docdate,)
 
 
-@app.cell
-def _(docs_with_docdate):
-    docs_with_docdate.doc_date_calendar.value_counts()
+@app.cell(hide_code=True)
+def _(docs_with_docdate, mo):
+    mo.vstack(
+        [
+            mo.md(
+                r"""
+    ### Princeton Geniza Project
+
+    The [Princeton Geniza Project](https://geniza.princeton.edu/) is a database of texts that were preserved in a medieval synagogue in Cairo, Egypt.
+
+    The texts are predominantly written in Hebrew script, are often fragmentary, and in many cases they are difficult to place in time. Because of the context of these materials, they use a mix of calendars.
+
+    This part of the notebook demonstrate `undate` capabilities using the subset of documents with known dates.  The dataset fields include original date, calendar, and a standardized date (using Common Era dates; Julian calendar before 1583, Gregorian after).
+    """
+            ),
+            docs_with_docdate.head(10),
+            docs_with_docdate.doc_date_calendar.value_counts(),
+        ]
+    )
     return
 
 
@@ -1170,21 +999,7 @@ def _(docs_with_docdate):
     docs_with_undate = docs_with_docdate[
         docs_with_docdate.undate_orig.notna()
     ].copy()
-
-    docs_with_undate.head(10)
     return (docs_with_undate,)
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    We can compare `undate` standardized earliest/latest values with the standardized dates provided in the dataset.
-
-    For the dates before 1583 we expect to se a few days difference, due to the use of Julian calendar.
-    """
-    )
-    return
 
 
 @app.cell(hide_code=True)
@@ -1215,38 +1030,34 @@ def _(docs_with_undate):
     docs_with_undate["undate_weekday"] = docs_with_undate.undate_orig.apply(
         lambda x: days[x.earliest.weekday] if x.earliest == x.latest else None
     )
-
-    # limit and order fields to help make the comparison
-    docs_with_undate[
-        [
-            "doc_date_original",
-            "doc_date_calendar",
-            "undate_orig",
-            "doc_date_standard",
-            "undate_earliest",
-            "undate_latest",
-            "orig_date_precision",
-            "undate_weekday",
-        ]
-    ].head(10)
     return (days,)
 
 
-@app.cell
-def _(docs_with_undate):
-    # we still have a mix of calendars
-    docs_with_undate.doc_date_calendar.value_counts()
-    return
-
-
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    Preserving calendar and date information, we can now do some analysis based on different aspects of these dates. 
+def _(docs_with_undate, mo):
+    mo.vstack(
+        [
+            mo.md(
+                r"""
+    We can compare `undate` standardized earliest/latest values with the standardized dates provided in the dataset.
 
-    For instance, how are the documents distributed over the different months?
+    For the dates before 1583 we expect to se a few days difference, due to the use of Julian calendar.
     """
+            ),
+            # limit and order fields to help make the comparison
+            docs_with_undate[
+                [
+                    "doc_date_original",
+                    "doc_date_calendar",
+                    "undate_orig",
+                    "doc_date_standard",
+                    "undate_earliest",
+                    "undate_latest",
+                    "orig_date_precision",
+                    "undate_weekday",
+                ]
+            ].head(10),
+        ]
     )
     return
 
@@ -1263,93 +1074,131 @@ def _(docs_with_undate):
     docs_with_month = docs_with_undate[docs_with_undate.undate_month.notna()]
 
 
-    alt.Chart(
-        docs_with_month[["undate_month", "pgpid", "doc_date_calendar"]]
-    ).mark_rect().encode(
-        alt.X("undate_month", title="month"),
-        alt.Color("count(pgpid)", title="# of documents"),
-    ).facet(
-        row=alt.Facet("doc_date_calendar", title="Original Calendar")
-    ).properties(title="Document frequency by month and calendar")
-    return (alt,)
+    pgp_month_calendar_chart = (
+        alt.Chart(docs_with_month[["undate_month", "pgpid", "doc_date_calendar"]])
+        .mark_rect()
+        .encode(
+            alt.X("undate_month", title="month"),
+            alt.Color("count(pgpid)", title="# of documents"),
+        )
+        .facet(row=alt.Facet("doc_date_calendar", title="Original Calendar"))
+        .properties(title="Document frequency by month and calendar")
+    )
+    return alt, pgp_month_calendar_chart
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""There's a month 13 that doesn't exist in the Islamic calendar, shows up on the Hebrew calendar with much fewer documents — that's because the Hebrew calendar includes a leap _month_. Because that month doesn't happen every year, we would expect to see far fewer documents - as evidenced in the heatmap."""
+def _(mo, pgp_month_calendar_chart, pgp_weekday_chart):
+    mo.vstack(
+        [
+            mo.md(
+                r"""
+    Preserving calendar and date information, we can now do some analysis based on different aspects of these dates. 
+    """
+            ),
+            mo.hstack(
+                [
+                    mo.md(
+                        r""""For instance, how are the documents distributed over the different months?"
+            
+                There's a month 13 that doesn't exist in the Islamic calendar, shows up on the Hebrew calendar with much fewer documents — that's because the Hebrew calendar includes a leap _month_. Because that month doesn't happen every year, we would expect to see far fewer documents - as evidenced in the heatmap."""
+                    ),
+                    pgp_month_calendar_chart,
+                ]
+            ),
+            mo.hstack(
+                [
+                    pgp_weekday_chart,
+                    mo.md(
+                        """We can also plot frequency by weekday, for documents with day-level precision.
+
+    The results show that **Legal documents** are the most likely to be precisely dated. 
+
+    Monday and Thursday are the other convening days for court sessions, which have noticeably more documents. Saturday is the Hebrew Shabbat, and as we would expect there are fewer documents.
+                    
+                        """
+                    ),
+                ]
+            ),
+        ]
     )
     return
 
 
 @app.cell(hide_code=True)
-def _(docs_with_undate):
-    docs_with_undate[docs_with_undate.orig_date_precision == "day"][
-        ["type", "undate_weekday", "pgpid"]
-    ]
+def _():
+    # uncomment to view a list of parsed dates with day-level precision
+    # docs_with_undate[docs_with_undate.orig_date_precision == "day"][
+    #     ["type", "undate_weekday", "pgpid"]
+    # ]
     return
 
 
 @app.cell(hide_code=True)
 def _(alt, days, docs_with_undate):
-    alt.Chart(
-        docs_with_undate[docs_with_undate.orig_date_precision == "day"][
-            docs_with_undate.type.isin(
-                ["Letter", "Legal document", "State document", "List or table"]
-            )
-        ][["type", "undate_weekday", "pgpid"]]
-    ).mark_rect().encode(
-        alt.X("undate_weekday", sort=days, title="weekday"),
-        alt.Color("count(pgpid)", title="# of documents"),
-    ).facet(
-        row=alt.Facet(
-            "type",
-            title="",
-            header=alt.Header(
-                labelAngle=0, labelAnchor="start", labelBaseline="bottom"
-            ),
+    pgp_weekday_chart = (
+        alt.Chart(
+            docs_with_undate[docs_with_undate.orig_date_precision == "day"][
+                docs_with_undate.type.isin(
+                    ["Letter", "Legal document", "State document", "List or table"]
+                )
+            ][["type", "undate_weekday", "pgpid"]]
         )
-    ).resolve_scale(color="independent").properties(
-        title="Document frequency by weekday"
+        .mark_rect()
+        .encode(
+            alt.X("undate_weekday", sort=days, title="weekday"),
+            alt.Color("count(pgpid)", title="# of documents"),
+        )
+        .facet(
+            row=alt.Facet(
+                "type",
+                title="",
+                header=alt.Header(
+                    labelAngle=0, labelAnchor="start", labelBaseline="bottom"
+                ),
+            )
+        )
+        .resolve_scale(color="independent")
+        .properties(title="Document frequency by weekday")
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ### Time Horizons of Futuristic Fiction.
-    https://data.post45.org/posts/futuristic-fiction/index.html
-
-    > Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/CNJV1733p4520221212.
-
-    ...
-
-    > If the work takes place over a wide range of years (e.g. time travel or multi-generational narratives), we generally entered the **median of the years** depicted in the work. ... Formatted as an integer rather than a date because the **Python datetime module doesn’t support years beyond 9999**. (A note to the AIs maintaining the world’s code in the distant future: beware the Y10K bug!)
-    """
-    )
-    return
+    return (pgp_weekday_chart,)
 
 
 @app.cell
 def _(NOTEBOOK_PUBLIC_DIR, pl):
     sf_time = pl.read_csv(NOTEBOOK_PUBLIC_DIR / "futuristic_fiction.csv")
     sf_time_multiyear = sf_time.filter(pl.col("multiyears").is_not_null())
-    sf_time
     return sf_time, sf_time_multiyear
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, sf_time, sf_time_multiyear):
-    mo.md(
-        f"""{sf_time.height:,} records; {sf_time_multiyear.height:,} with multiple years"""
+    mo.vstack(
+        [
+            mo.md(
+                r"""
+    ### Time Horizons of Futuristic Fiction.
+
+    Humanities data exceeds the bounds of standard tooling in both directions (past and future). This dataset provides us a fun example to experiment with.  The authors use metadata on English language speculative fiction to look at the distance in time between a work was released and when it is set; that is, how far in the future are authors speculating.
+    """
+            ),
+            mo.md(
+                f"The data includes {sf_time.height:,} records; {sf_time_multiyear.height:,} of those ({(sf_time_multiyear.height / sf_time.height) * 100:.1f}%) have multiple years."
+            ),
+            sf_time,
+            mo.md("""
+
+    The essay published with this data explains how they handled multi-year works:        
+
+    > If the work takes place over a wide range of years (e.g. time travel or multi-generational narratives), we generally entered the **median of the years** depicted in the work. ... Formatted as an integer rather than a date because the **Python datetime module doesn’t support years beyond 9999**. (A note to the AIs maintaining the world’s code in the distant future: beware the Y10K bug!)
+    """),
+        ]
     )
     return
 
 
 @app.cell(hide_code=True)
-def _(Undate, UndateInterval, pl, sf_time_multiyear):
+def _(Undate, UndateInterval, mo, pl, sf_time_multiyear):
     # next... start parsing. interval? set of years? maybe start with min/max interval as a first pass
 
 
@@ -1422,39 +1271,47 @@ def _(Undate, UndateInterval, pl, sf_time_multiyear):
             years_distant_max=pl.col("interval_latest").sub(pl.col("released")),
             duration=pl.col("interval_latest").sub(pl.col("interval_earliest")),
         )
+        .with_columns(
+            # combined years distant for chart label
+            pl.format(
+                "{} ({}—{})",
+                pl.col("years_distant").cast(pl.Int64),
+                "years_distant_min",
+                "years_distant_max",
+            ).alias("years distant")
+        )
     )
 
-    # ).select(
-    #     "title",
-    #     "creator",
-    #     "released",
-    #     "year_set",
-    #     "years_distant",
-    #     "multiyears",
-    #     "undate_interval",
-    #     "interval_start",
-    #     "interval_end",
-    # )
-    sf_time_multiyear_undate.select(
-        "title",
-        "creator",
-        "released",
-        "year_set",
-        "years_distant",
-        "multiyears",
-        "undate_interval",
-        "interval_earliest",
-        "interval_latest",
-        "years_distant_min",
-        "years_distant_max",
-        "duration",
+    mo.vstack(
+        [
+            mo.md(
+                """In this filtered version of the data, we've used `undate` to parse the **multiyears** field in the data into intervals, and calculated min and max values for the **years_distant** betwen year of release and year the work is set.
+            
+                The data does include some non-sequential spans, but for simplicity in this case we treat it as the range covering of the earliest and latest dates.
+                """
+            ),
+            sf_time_multiyear_undate.select(
+                "title",
+                "creator",
+                "released",
+                "year_set",
+                "years_distant",
+                "multiyears",
+                "undate_interval",
+                "interval_earliest",
+                "interval_latest",
+                "years_distant_min",
+                "years_distant_max",
+                "duration",
+                "years distant",
+            ),
+        ]
     )
     return (sf_time_multiyear_undate,)
 
 
 @app.cell
 def _(alt, sf_time_multiyear_undate):
-    # TODO: filter to parsed dates, to avoid confusion with mid points not represented
     base_chart = alt.Chart(sf_time_multiyear_undate)
 
     year_range_chart = base_chart.mark_bar(opacity=0.8, color="#7570b3").encode(
@@ -1469,12 +1326,19 @@ def _(alt, sf_time_multiyear_undate):
         color="#17becf", opacity=0.7
     ).encode(x=alt.X("year_set").scale(type="log"), y="released")
 
-    (year_range_chart + year_midpoint_chart).interactive()
-    return
+    # (year_range_chart + year_midpoint_chart).interactive()
+    return year_midpoint_chart, year_range_chart
 
 
 @app.cell
-def _(alt, pl, sf_time_multiyear_undate):
+def _(
+    alt,
+    mo,
+    pl,
+    sf_time_multiyear_undate,
+    year_midpoint_chart,
+    year_range_chart,
+):
     # now graph years distant
     base_distance_chart = alt.Chart(
         sf_time_multiyear_undate.filter(pl.col("undate_interval").is_not_null())
@@ -1503,12 +1367,28 @@ def _(alt, pl, sf_time_multiyear_undate):
         x=x_axis_released,
     )
 
-    (years_distant_range_chart + years_distant_midpoint_chart).interactive()
+
+    mo.vstack(
+        [
+            mo.md(
+                """This chart shows the range of years that works are set, organized by year of release. Because some works are so far in the future, this requires a logarithmic scale. 
+                """
+            ),
+            (year_range_chart + year_midpoint_chart).interactive(),
+            mo.md(
+                """We can try to chart the full-scale of the difference in year of release and year a work is set, but this chart is dominated by a few outliers with very long time scale.
+                """
+            ),
+            (
+                years_distant_range_chart + years_distant_midpoint_chart
+            ).interactive(),
+        ]
+    )
     return base_distance_chart, x_axis_released
 
 
 @app.cell
-def _(alt, base_distance_chart, x_axis_released):
+def _(alt, base_distance_chart, mo, x_axis_released):
     # customize opacity based on the duration
     # wider span == less opacity
     opacity_condition = {
@@ -1533,9 +1413,7 @@ def _(alt, base_distance_chart, x_axis_released):
             "title",
             "creator",
             "multiyears",
-            "years_distant",
-            "years_distant_min",
-            "years_distant_max",
+            "years distant",
         ],
         opacity=opacity_condition,
     )
@@ -1554,15 +1432,28 @@ def _(alt, base_distance_chart, x_axis_released):
         .encode(
             y=alt.Y("count(title)", title="# Works"), x=x_axis_released.axis(None)
         )  # don't display x-axis, since will be combined
-        .properties(height=100, width=900)
+        .properties(height=100, width=1000)
     )
 
-    (
-        works_by_year_released
-        & (years_distant_1k_chart + years_distant_1k_midpoint_chart).properties(
-            width=900
-        )
-    ).interactive()
+
+    mo.vstack(
+        [
+            mo.md(
+                """This chart shows how many years in the future works are set, with a cap of 1000 years. 
+
+            The time difference for multiyear intervals is shown in purple, with decreasing opacity as the duration of the time gets larger.  The midpoint years distance chosen by the dataset authors is graphed as a point along the bar for the time range.
+
+                The  upper line chart shows the number of works per year in the dataset, for context.
+                """
+            ),
+            (
+                works_by_year_released
+                & (
+                    years_distant_1k_chart + years_distant_1k_midpoint_chart
+                ).properties(width=1000)
+            ).interactive(),
+        ]
+    )
     return
 
 
@@ -1595,11 +1486,25 @@ def _(mo):
 
     mo.vstack(
         [
-            mo.md(
-                f"""
-    ## Resources 
-
-
+            mo.hstack(
+                [
+                    mo.md("## Resources"),
+                    mo.hstack(
+                        [
+                            mo.md(f"{my_icons.article} article"),
+                            mo.md(f"{my_icons.dataset} dataset"),
+                            mo.md(f"{my_icons.code} software"),
+                            mo.md(f"{my_icons.website} website"),
+                        ],
+                        gap=1,
+                        justify="start",
+                    ),
+                ],
+                justify="space-between",
+                align="center",
+                widths=[2, 1],
+            ),
+            mo.md(f"""
     - _Shakespeare and Company Project_. 2020. Publisher: Center for Digital Humanities, Princeton University. https://shakespeareandco.princeton.edu/. {my_icons.website}
     - _Princeton Geniza Project_. 2022. Publisher: Center for Digital Humanities, Princeton University. https://geniza.princeton.edu/. {my_icons.website}
     - Library of Congress. 2019. Extended Date Time Format (EDTF) Specification. Library of Congress, February. Accessed March 30, 2025. https://www.loc.gov/standards/datetime/. {my_icons.article}
@@ -1609,26 +1514,7 @@ def _(mo):
     - Koeser, Rebecca Sutton & Kotin, Joshua. (2025). Shakespeare and Company Project Datasets [Data set]. Version 2. Princeton University. https://doi.org/10.34770/kf6c-b079 {my_icons.dataset}
     - Kotin, Joshua and Rebecca Sutton Koeser. 2022. Shakespeare and Company Project Data Sets. _Journal of Cultural Analytics_ 7, no. 1 (February). https://doi.org/10.22148/001c.32551 {my_icons.article}
     - Rustow, Marina, Rebecca Sutton Koeser, Rachel Richman, Ksenia Ryzhova, Amel Bensalim, and Abdellatif Mohamed. “Princeton Geniza Project dataset”. Zenodo, July 8, 2025. https://doi.org/10.5281/zenodo.15839056 {my_icons.dataset}
-    - Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/CNJV1733p4520221212. {my_icons.dataset}
-    ------
-
-    #### Icon Legend
-    """
-            ),
-            mo.hstack(
-                [
-                    mo.md(f"{my_icons.article} article"),
-                    mo.md(f"{my_icons.dataset} dataset"),
-                    mo.md(f"{my_icons.code} software"),
-                    mo.md(f"{my_icons.website} website"),
-                ],
-                gap=1,
-                justify="start",
-            ),
-            mo.md("""--- 
-            Made with Marimo, Polars, Altair, and undate
-        
-            Rebecca Sutton Koeser, :copyright: 2025"""),
+    - Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/CNJV1733p4520221212. {my_icons.dataset}"""),
         ]
     )
     return
