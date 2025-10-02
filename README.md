@@ -2,6 +2,10 @@
 
 by Rebecca Sutton Koeser
 
+[![DOI](https://zenodo.org/badge/980117158.svg)](https://doi.org/10.5281/zenodo.17253986)
+
+
+
 This notebook provides a demonstration of the functionality of the Python library
 [`Undate`](https://github.com/dh-tech/undate-python/).
 
@@ -34,7 +38,6 @@ To compile notebook to static html + web assembly:
 ```sh
 marimo export html-wasm undate-overview.py -o docs --mode edit
 ```
-
 
 To generate static html export:
 ```sh
