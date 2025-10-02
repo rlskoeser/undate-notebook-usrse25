@@ -741,7 +741,7 @@ def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, mo, pl):
     # NOTE: data has been prefiltered for efficiency; borrow events only, with start and end dates,
     # and a subset of relevant fields. See filter_data script for specifics.
     borrow_events = (
-        pl.read_csv(NOTEBOOK_PUBLIC_DIR / "SCoData_borrows_events.csv")
+        pl.read_csv(str(NOTEBOOK_PUBLIC_DIR / "SCoData_borrows_events.csv"))
         .with_columns(
             start_undate=pl.col("start_date").map_elements(
                 lambda x: Undate.parse(x, "ISO8601"),
@@ -937,7 +937,7 @@ def _(NOTEBOOK_PUBLIC_DIR, pd):
     # pre-filtered to documents with standardized format, supported calendars, and subset of fields
     # see filter script for specifics
     docs_with_docdate = pd.read_csv(
-        NOTEBOOK_PUBLIC_DIR / "pgp_dated_documents.csv"
+        str(NOTEBOOK_PUBLIC_DIR / "pgp_dated_documents.csv")
     )
     return (docs_with_docdate,)
 
@@ -1166,7 +1166,7 @@ def _(alt, days, docs_with_undate):
 
 @app.cell
 def _(NOTEBOOK_PUBLIC_DIR, pl):
-    sf_time = pl.read_csv(NOTEBOOK_PUBLIC_DIR / "futuristic_fiction.csv")
+    sf_time = pl.read_csv(str(NOTEBOOK_PUBLIC_DIR / "futuristic_fiction.csv"))
     sf_time_multiyear = sf_time.filter(pl.col("multiyears").is_not_null())
     return sf_time, sf_time_multiyear
 

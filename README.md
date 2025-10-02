@@ -29,7 +29,17 @@ uv run marimo edit undate-overview.py
 ```
 
 
+To compile notebook to static html + web assembly:
+
+```sh
+marimo export html-wasm undate-overview.py -o docs --mode edit
+```
+
+
 ### Scripts
 
 A utility script (`filter_data.py`) was added to pre-filter data used by the notebook,
 to make data loading more efficient.
+
+
+
