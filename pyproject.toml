@@ -16,3 +16,6 @@ dependencies = [
     "datapackage>=1.15.4",
     "pyarrow>=21.0.0",
 ]
+
+[tool.marimo.display]
+custom_css = ["local.css"]
