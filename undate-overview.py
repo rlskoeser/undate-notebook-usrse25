@@ -18,7 +18,7 @@ def _():
     return NOTEBOOK_PUBLIC_DIR, mo, pd
 
 
-@app.cell
+@app.cell(hide_code=True)
 async def _():
     import sys
 
@@ -45,7 +45,7 @@ def _(mo, undate_version):
         f"""
     # Undate: computing with uncertain and partially-unknown dates
 
-    `Undate` is an ambitious, in-progress effort to develop a pragmatic Python library for computation and analysis of temporal information in humanistic and cultural data, with a particular emphasis on uncertain, incomplete, or imprecise dates and with support for multiple calendars.
+    `Undate` is an **ambitious, in-progress effort** to develop a **pragmatic Python library** for computation and analysis of temporal information in humanistic and cultural data, with a particular emphasis on **uncertain, incomplete, or imprecise dates** and with support for **multiple calendars**.
 
     Researchers in the humanities often work with historical or cultural data, and knowing when particular materials were created or events happened is important for understanding the context, interpreting correctly, and determining relationships and sequencing. However, these kind of materials rarely have full precision dates with known year, month, and day. In some contexts, scholars may be happy if they can determine even just a century based on handwriting or mentions of historic coins.
 
@@ -194,10 +194,26 @@ def _(Undate, datetime, display_opts, init_options, mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ### Date Comparisons
+def _(Undate, option_values, pl):
+    # initialize data with some sample dates; display on next slide with text
+    sample_dates = [Undate(**opts) for opts in option_values]
+    # sample_dates.append(datetime.date(**option_values[0]))
+    sample_date_df = pl.DataFrame(
+        data={
+            "undate": sample_dates,
+            "year": [d.year for d in sample_dates],
+            "month": [d.month for d in sample_dates],
+            "day": [d.day for d in sample_dates],
+        }
+    )
+    return sample_date_df, sample_dates
+
+
+@app.cell(hide_code=True)
+def _(mo, sample_date_df):
+    mo.vstack(
+        [
+            mo.md("""### Date Comparisons
 
 
     We can also do some simple calculations, like checking whether one date falls within another date.
@@ -210,29 +226,14 @@ def _(mo):
 
     Uncertain dates with the same initial values aren't equal, since they are uncertain.
 
-    The `Undate` class has properties to return `year`, `month`, and `day` if they are known. They are returned as strings to allow for partially unknown dates, and return `None` when a value is unknown.
-    """
+    The `Undate` class has properties to return `year`, `month`, and `day` if they are known. They are returned as strings to allow for partially unknown dates, and return `None` when a value is unknown."""),
+            sample_date_df,
+        ]
     )
     return
 
 
-@app.cell
-def _(Undate, option_values, pl):
-    sample_dates = [Undate(**opts) for opts in option_values]
-    # sample_dates.append(datetime.date(**option_values[0]))
-    sample_date_df = pl.DataFrame(
-        data={
-            "undate": sample_dates,
-            "year": [d.year for d in sample_dates],
-            "month": [d.month for d in sample_dates],
-            "day": [d.day for d in sample_dates],
-        }
-    )
-    sample_date_df
-    return (sample_dates,)
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     comparison_opts = {
         "equals : ==": "eq",
@@ -249,7 +250,7 @@ def _(mo):
     return (cmp_opt,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alt, cmp_opt, mo, pd, sample_dates):
     from itertools import combinations
 
@@ -310,6 +311,9 @@ def _(alt, cmp_opt, mo, pd, sample_dates):
 
     mo.vstack(
         [
+            mo.md(
+                "This chart shows the results for comparisons across a set of `Undate` objects with varying precision and known information."
+            ),
             cmp_opt,
             mo.ui.altair_chart(
                 alt.Chart(date_comparison_df)
@@ -323,95 +327,69 @@ def _(alt, cmp_opt, mo, pd, sample_dates):
                     ),
                     tooltip="text",
                 )
-                .properties(title=f"Date comparisions for: {cmp_opt.value}")
+                .properties(
+                    title=f"Date comparisions for: {cmp_opt.value}", width=900
+                )
             ),
         ],
-        # align="center",
+        align="center",
     )
     # NOTE: may need to adjust dates included to avoid undate bugs with unknown years
-    return (date_comparison_df,)
-
-
-@app.cell
-def _(date_comparison_df):
-    # display for debugging; remove later
-    date_comparison_df
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r""" """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ## Date Intervals
-
-    Like many other date libraries, `undate` includes support for intervals.  An `UndateInterval` is a date range between two `Undate` objects. Intervals can be open-ended, allow for optional labels, and can calculate duration if enough information is known.
-    """
-    )
-    return
-
-
-@app.cell
-def _(Undate):
+def _(Undate, mo, pl):
     from undate import UndateInterval
 
     nineteenth_c = UndateInterval(Undate(1801), Undate(1900), label="19th century")
-    nineteenth_c
-    return UndateInterval, nineteenth_c
+    before_2000 = UndateInterval(latest=Undate(2000), label="Before 2000")
+    after_1900 = UndateInterval(Undate(1900), label="After 1900")
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    An `UndateInterval` has an earliest and a latest value for the start and end of the date range. Since those are `Undate` instances, they also have earliest and latest values.
-
-    The duration of an interval is calculated based on the difference between the last day and first day in range.
-    """
+    # initialize data with some sample dates; display on next slide with text
+    sample_intervals = [nineteenth_c, before_2000, after_1900]
+    # sample_dates.append(datetime.date(**option_values[0]))
+    sample_intervals_df = pl.DataFrame(
+        data={
+            "label": [i.label for i in sample_intervals],
+            "interval": sample_intervals,
+            "earliest": [i.earliest for i in sample_intervals],
+            "latest": [i.latest for i in sample_intervals],
+            "duration": [
+                repr(i.duration()) if i.earliest and i.latest else None
+                for i in sample_intervals
+            ],
+            "duration_days": [
+                i.duration().days if i.earliest and i.latest else None
+                for i in sample_intervals
+            ],
+        }
     )
-    return
 
+    mo.vstack(
+        [
+            mo.md(
+                r"""
+    ## Date Intervals
 
-@app.cell
-def _(nineteenth_c):
-    print(nineteenth_c.earliest.earliest)
-    return
+    Like many other date libraries, `undate` includes support for intervals.  An `UndateInterval` is a date range between two `Undate` objects. Intervals can be open-ended, allow for optional labels, and can calculate duration if enough information is known.
 
+    ```python
+    from undate import UndateInterval
 
-@app.cell
-def _(nineteenth_c):
-    print(nineteenth_c.latest.latest)
-    return
+    nineteenth_c = UndateInterval(Undate(1801), Undate(1900), label="19th century")
+    before_2000 = UndateInterval(latest=Undate(2000), label="Before 2000")
+    after_1900 = UndateInterval(Undate(1900), label="After 1900")
+    ```
 
-
-@app.cell
-def _(nineteenth_c):
-    nineteenth_c.duration()
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""Intervals can also be open-ended.  Here are a couple of examples:""")
-    return
-
-
-@app.cell
-def _(Undate, UndateInterval):
-    UndateInterval(latest=Undate(2000))  # before 2000
-    return
-
-
-@app.cell
-def _(Undate, UndateInterval):
-    UndateInterval(Undate(1900))  # after 1900
-    return
+    An `UndateInterval` has an earliest and a latest value for the start and end of the date range. Since those are `Undate` instances, they also have earliest and latest values. The duration of an interval is calculated based on the difference between the last day and first day in range.
+    ```
+    """
+            ),
+            sample_intervals_df,
+        ]
+    )
+    return (UndateInterval,)
 
 
 @app.cell(hide_code=True)
@@ -424,16 +402,40 @@ def _(mo):
 
     The `undate` library has an extensive converter class ([`BaseDateConverter`](https://undate-python.readthedocs.io/en/latest/undate/converters.html)), which can be extended for parsing dates in specific formats and also for parsing and converting dates from other calendars.  Parsing is implemented with the Python library [Lark](https://lark-parser.readthedocs.io/en/stable/).
 
-    Currently, we support ISO8601 and some portions of the Extended Date Time Format (EDTF).
+    Currently, `undate` supports **ISO8601** and some portions of the **Extended Date Time Format (EDTF)**.
     """
     )
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
+def _(Undate, pl):
+    from undate.date import DatePrecision
+    from undate.converters.iso8601 import ISO8601DateFormat
+
+    Undate.DEFAULT_CONVERTER = "ISO8601"
+
+    parse_dates_txt = ["1985-04-12", "1985-04", "1985", "--04-12"]
+    parse_dates = [Undate.parse(d, "ISO8601") for d in parse_dates_txt]
+
+    # sample_dates.append(datetime.date(**option_values[0]))
+    parse_examples_df = pl.DataFrame(
+        data={
+            "input": parse_dates_txt,
+            "repr": [repr(d) for d in parse_dates],
+            "str": [str(d) for d in parse_dates],
+            "precision": [str(d.precision) for d in parse_dates],
+        }
+    )
+    return DatePrecision, ISO8601DateFormat, parse_examples_df
+
+
+@app.cell(hide_code=True)
+def _(mo, parse_examples_df):
+    mo.vstack(
+        [
+            mo.md(
+                r"""
     ### ISO8601
 
     **ISO 8601** is an international standard for dates (see [Wikipedia ISO 8601 entry](https://en.wikipedia.org/wiki/ISO_8601) for more details). For Calendar dates, this format uses the familiar **YYYY-MM-DD** notation for full dates, **YYYY-MM** for year and month. Some earlier versions of the specification allowed formats like **--MM-DD** for dates when month and day are known but the year is not.
@@ -441,195 +443,105 @@ def _(mo):
     A converter can be used directly by the class, or can be parsed by the name of the converter.
 
     Here are some examples. In this case, we set the default converter to ISO8601 so that the string format will serialize the date back out to the original format.
-    """
-    )
-    return
 
-
-@app.cell
-def _(Undate):
+    ```python
     from undate.date import DatePrecision
     from undate.converters.iso8601 import ISO8601DateFormat
 
     Undate.DEFAULT_CONVERTER = "ISO8601"
-    _day = Undate.parse("1985-04-12", "ISO8601")
-    assert str(_day) == "1985-04-12"
-    assert _day.precision == DatePrecision.DAY
-    _yearmonth = Undate.parse("1985-04", "ISO8601")
-    assert str(_yearmonth) == "1985-04"
-    assert _yearmonth.precision == DatePrecision.MONTH
-    _year = Undate.parse("1985", "ISO8601")
-    assert str(_year) == "1985"
-    assert _year.precision == DatePrecision.YEAR
-    _monthday = Undate.parse("--04-12", "ISO8601")
-    assert str(_monthday) == "--04-12"
-    assert _monthday.precision == DatePrecision.DAY
-    return DatePrecision, ISO8601DateFormat
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""If you try to parse something that isn't supported by the format or the parser, the method raises a `ValueError` exception with the error message from the parser."""
-    )
-    return
-
-
-@app.cell
-def _(Undate):
+    parse_dates_txt = ["1985-04-12", "1985-04", "1985", "--04-12", "1984/1986"]
+    parse_dates = [Undate.parse(d, "ISO8601") for d in parse_dates_txt]
+    ```
+    """
+            ),
+            parse_examples_df,
+            mo.md(r"""
+    If you try to parse something that isn't supported by the format or the parser, the method raises a `ValueError` exception with the error message from the parser.
+    ```python
     try:
         Undate.parse("????-04-12", "ISO8601")
     except ValueError as err:
         print(err)
+    ```
+    `invalid literal for int() with base 10: '????'`
+    """),
+        ]
+    )
     return
 
 
+@app.cell
+def _(Undate, UndateInterval, pl):
+    Undate.DEFAULT_CONVERTER = "EDTF"
+
+    parse_edtf_dates = [
+        "1985-04-12",
+        "1985-04",
+        "1985",
+        "XXXX-04-12",
+        "1964/2008",
+        "2004-02-01/2005-02",
+        "2005/2006-02",
+        "1985-04-12/..",
+        "-1985",
+        "Y170000002",
+    ]
+    parsed_edtf_dates = [Undate.parse(d, "EDTF") for d in parse_edtf_dates]
+
+
+    def precision(date):
+        # display date precision for undate or start/end of undate interval
+        if isinstance(date, Undate):
+            return str(date.precision)
+        elif isinstance(date, UndateInterval):
+            parts = []
+            if date.earliest is not None:
+                parts.append(str(date.earliest.precision))
+            if date.latest is not None:
+                parts.append(str(date.latest.precision))
+            return " / ".join(parts)
+
+
+    # sample_dates.append(datetime.date(**option_values[0]))
+    parse_edtf_examples_df = pl.DataFrame(
+        data={
+            "input": parse_edtf_dates,
+            "repr": [repr(d) for d in parsed_edtf_dates],
+            "str": [str(d) for d in parsed_edtf_dates],
+            "precision": [precision(d) for d in parsed_edtf_dates],
+        }
+    )
+    return (parse_edtf_examples_df,)
+
+
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
+def _(mo, parse_edtf_examples_df):
+    mo.vstack(
+        [
+            mo.md(
+                r"""
     ### Extendend Date Time Format
 
     Since the EDTF format includes both dates and intervals, parsing an EDTF can return either an `Undate` or an `UndateInterval`.  
 
-    Here are some examples.   
-
     EDTF and ISO8601 use the same format for full precision day, year-month, and year dates.
+
+    EDTF uses **X** to indicate unspecified digits.  EDTF also supports negative years and years that are more than four digits; the **Y** prefix is used to indicate the number is a year.
+
+    The EDTF format includes notation for intervals, including open intervals; parsing an EDTF interval returns an `UndateInterval`. Here are some examples from the Library of Congress documentation on EDTF. Note that the start and end date of the interval don't have to use the same date precision.
+    ```python
+
+    parse_edtf_dates = ["1985-04-12","1985-04","1985", "XXXX-04-12", "1964/2008",
+        "2004-02-01/2005-02", "2005/2006-02", "1985-04-12/..", "-1985", "Y170000002"]
+    parsed_edtf_dates = [Undate.parse(d, "EDTF") for d in parse_edtf_dates]
+    ```
+
+
     """
+            ),
+            parse_edtf_examples_df,
+        ]
     )
-    return
-
-
-@app.cell
-def _(DatePrecision, Undate):
-    _day = Undate.parse("1985-04-12", "EDTF")
-    assert _day.format("EDTF") == "1985-04-12"
-    assert _day.precision == DatePrecision.DAY
-    _yearmonth = Undate.parse("1985-04", "EDTF")
-    assert _yearmonth.format("EDTF") == "1985-04"
-    assert _yearmonth.precision == DatePrecision.MONTH
-    _year = Undate.parse("1985", "EDTF")
-    assert _year.format("EDTF") == "1985"
-    assert _year.precision == DatePrecision.YEAR
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    EDTF uses **X** to indicate unspecified digits. Here's the example from above with an unknown year. 
-
-    If we specify a different formatter, we can output the date in a different format than we used for parsing.
-    """
-    )
-    return
-
-
-@app.cell
-def _(DatePrecision, Undate):
-    _monthday = Undate.parse("XXXX-04-12", "EDTF")
-    assert _monthday.format("EDTF") == "XXXX-04-12"
-    assert _monthday.format("ISO8601") == "--04-12"
-    assert _monthday.precision == DatePrecision.DAY
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""The EDTF format includes notation for intervals; parsing an EDTF interval returns an `UndateInterval`. Here are some examples from the Library of Congress documentation on EDTF. Note that the start and end date of the interval don't have to use the same date precision."""
-    )
-    return
-
-
-@app.cell
-def _(DatePrecision, Undate, UndateInterval):
-    # Example 1
-    year_range = Undate.parse("1964/2008", "EDTF")
-    assert isinstance(year_range, UndateInterval)
-    assert year_range.earliest == Undate(1964)
-    assert year_range.latest == Undate(2008)
-    # Example 2
-    month_range = Undate.parse("2004-06/2006-08", "EDTF")
-    assert isinstance(month_range, UndateInterval)
-    assert month_range.earliest == Undate(2004, 6)
-    assert month_range.latest == Undate(2006, 8)
-    # Example 3
-    day_range = Undate.parse("2004-02-01/2005-02-08", "EDTF")
-    assert isinstance(day_range, UndateInterval)
-    assert day_range.earliest == Undate(2004, 2, 1)
-    assert day_range.latest == Undate(2005, 2, 8)
-    # Example 4
-    day_month_range = Undate.parse("2004-02-01/2005-02", "EDTF")
-    assert isinstance(day_range, UndateInterval)
-    assert day_month_range.earliest == Undate(2004, 2, 1)
-    assert day_month_range.latest == Undate(2005, 2)
-    assert day_month_range.earliest.precision == DatePrecision.DAY
-    assert day_month_range.latest.precision == DatePrecision.MONTH
-    # Example 5
-    day_year_range = Undate.parse("2004-02-01/2005", "EDTF")
-    assert isinstance(day_range, UndateInterval)
-    assert day_year_range.earliest == Undate(2004, 2, 1)
-    assert day_year_range.latest == Undate(2005)
-    assert day_year_range.earliest.precision == DatePrecision.DAY
-    assert day_year_range.latest.precision == DatePrecision.YEAR
-    # Example 6
-    year_month_range = Undate.parse("2005/2006-02", "EDTF")
-    assert isinstance(year_month_range, UndateInterval)
-    assert year_month_range.earliest == Undate(2005)
-    assert year_month_range.latest == Undate(2006, 2)
-    assert year_month_range.earliest.precision == DatePrecision.YEAR
-    assert year_month_range.latest.precision == DatePrecision.MONTH
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""EDTF also supports open intervals. Here are some examples of those:"""
-    )
-    return
-
-
-@app.cell
-def _(DatePrecision, Undate, UndateInterval, datetime):
-    interval = Undate.parse("1985-04-12/..", "EDTF")
-    assert isinstance(interval, UndateInterval)
-    assert interval.earliest == datetime.date(1985, 4, 12)
-    assert interval.earliest.precision == DatePrecision.DAY
-    assert interval.latest is None
-
-    interval = Undate.parse("1985-04/..", "EDTF")
-    assert isinstance(interval, UndateInterval)
-    assert interval.earliest == Undate(1985, 4)
-    assert interval.earliest.precision == DatePrecision.MONTH
-    assert interval.latest is None
-
-    interval = Undate.parse("1985/..", "EDTF")
-    assert isinstance(interval, UndateInterval)
-    assert interval.earliest == Undate(1985)
-    assert interval.earliest.precision == DatePrecision.YEAR
-    assert interval.latest is None
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""EDTF also supports negative years and years that are more than four digits; the **Y** prefix is used to indicate the number is a year."""
-    )
-    return
-
-
-@app.cell
-def _(Undate):
-    neg_year = Undate.parse("-1985", "EDTF")
-    assert neg_year.year == "-1985"
-    assert Undate(-1985).format("EDTF") == "-1985"
-
-    assert Undate.parse("Y170000002", "EDTF").year == "170000002"
-    assert Undate(170000002).format("EDTF") == "Y170000002"
     return
 
 
@@ -639,29 +551,15 @@ def _(mo):
         r"""
     ## Calendars
 
-    `undate` includes a [BaseCalendarConverter](https://undate-python.readthedocs.io/en/latest/undate/converters.html#undate.converters.base.BaseCalendarConverter), as a special case of the `BaseDateConverter` for format parsing and conversion like ISO8601 and EDTF. In addition the `parse()` method that all converters must implement, calendar converters have logic for returning minimum and maximum month and day, first and last month as integers (since some calendars don't start the year on month 1), and a `to_gregorian()` method to convert into a standard Gregorian date. We use the [convertdate](https://github.com/fitnr/convertdate) Python library for the actual numeric conversion.
-    """
-    )
-    return
+    `undate` includes a [BaseCalendarConverter](https://undate-python.readthedocs.io/en/latest/undate/converters.html#undate.converters.base.BaseCalendarConverter), as a special case of the `BaseDateConverter` for format parsing and conversion like ISO8601 and EDTF. In addition the `parse()` method that all converters must implement, calendar converters have logic for returning minimum and maximum month and day, first and last month as integers (since some calendars don't start the year on month 1), and a `to_gregorian()` method to convert into a standard Gregorian date. `undate` usees the [convertdate](https://github.com/fitnr/convertdate) Python library for the actual numeric conversion.
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
     ### Gregorian calendar
 
-    An `Undate` instance always has a calendar defined; we use the Gregorian calendar if a calendar is not specified.
+    An `Undate` instance always has a calendar defined; it uses the Gregorian calendar if a calendar is not specified.  You may have noticed this in the output from `repr()` in the earlier examples.
 
-    Here's an example from one of the `Undate` instances we defined earlier:
     """
     )
-    return
-
-
-@app.cell
-def _():
-    # november7_1.calendar
     return
 
 
@@ -837,12 +735,12 @@ def _(tishrei3):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(Undate, pl):
     calendars = ["Gregorian", "Hebrew", "Islamic"]
 
     calendar_dates = {
-        "text": [
+        "label": [
             "21 Rajab 1023",
             "Rajab 1023",
             "1023",
@@ -864,7 +762,7 @@ def _(Undate, pl):
             "Gregorian",
             "Gregorian",
         ],
-        # we pre-supply the numeric values int his case, since we don't yet have a text parser for Gregorian dates
+        # we pre-supply the numeric values in this case, since we don't yet have a text parser for Gregorian dates
         "numeric": [
             (1023, 7, 21),
             (1023, 7),
@@ -912,7 +810,7 @@ def _(Undate, pl):
                 return_dtype=pl.datatypes.Int32,
             ),
         )
-    )
+    ).drop("numeric")
     cal_dates_df
     return
 
@@ -942,13 +840,13 @@ def _(Undate, rajab21, tishrei3):
     june1663 = Undate(1663, 6)
 
     sorted_mix = sorted([rajab21, tishrei3, june1663])
-    sorted_mix
+    print("\n".join([repr(d) for d in sorted_mix]))
     return (sorted_mix,)
 
 
 @app.cell
 def _(sorted_mix):
-    print([d.earliest for d in sorted_mix])
+    print("\n".join([repr(d.earliest) for d in sorted_mix]))
     return
 
 
@@ -1010,7 +908,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
     from undate.date import ONE_DAY
 
@@ -1082,7 +980,7 @@ def _(ISO8601DateFormat, NOTEBOOK_PUBLIC_DIR, Undate, UndateInterval, pl):
     return (borrow_events,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alt):
     def raincloud_plot(dataset, fieldname, field_label, color_opts=None):
         """Create a raincloud plot for the density of the specified field
@@ -1149,7 +1047,7 @@ def _(alt):
     return (raincloud_plot,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(borrow_events, mo, pl):
     members_with_unknownyears = (
         borrow_events.filter(pl.col("known_year").eq("unknown"))
@@ -1173,7 +1071,7 @@ def _(borrow_events, mo, pl):
     return (member_opt,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alt, borrow_events, member_opt, mo, pl, raincloud_plot):
     mo.vstack(
         [
@@ -1204,14 +1102,10 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Princeton Geniza Project""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
     mo.md(
         r"""
+    ### Princeton Geniza Project
+
     The [Princeton Geniza Project](https://geniza.princeton.edu/) is a database of texts that were preserved in a medieval synagogue in Cairo, Egypt.
 
     The texts are predominantly written in Hebrew script, are often fragmentary, and in many cases they are difficult to place in time. Because of the context of these materials, they use a mix of calendars.
@@ -1241,7 +1135,7 @@ def _(docs_with_docdate):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(Undate, docs_with_docdate):
     # Use undate to parse the original dates based on calendar
 
@@ -1270,7 +1164,7 @@ def _(Undate, docs_with_docdate):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(docs_with_docdate):
     # limit to the records that were successfully parsed
     docs_with_undate = docs_with_docdate[
@@ -1293,7 +1187,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(docs_with_undate):
     # compare undate standardized earliest/latest values with the standardized dates in the dataset
 
@@ -1357,7 +1251,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(docs_with_undate):
     import altair as alt
 
@@ -1388,7 +1282,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(docs_with_undate):
     docs_with_undate[docs_with_undate.orig_date_precision == "day"][
         ["type", "undate_weekday", "pgpid"]
@@ -1396,7 +1290,7 @@ def _(docs_with_undate):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alt, days, docs_with_undate):
     alt.Chart(
         docs_with_undate[docs_with_undate.orig_date_precision == "day"][
@@ -1418,6 +1312,257 @@ def _(alt, days, docs_with_undate):
     ).resolve_scale(color="independent").properties(
         title="Document frequency by weekday"
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    ### Time Horizons of Futuristic Fiction.
+    https://data.post45.org/posts/futuristic-fiction/index.html
+
+    > Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/CNJV1733p4520221212.
+
+    ...
+
+    > If the work takes place over a wide range of years (e.g. time travel or multi-generational narratives), we generally entered the **median of the years** depicted in the work. ... Formatted as an integer rather than a date because the **Python datetime module doesn’t support years beyond 9999**. (A note to the AIs maintaining the world’s code in the distant future: beware the Y10K bug!)
+    """
+    )
+    return
+
+
+@app.cell
+def _(NOTEBOOK_PUBLIC_DIR, pl):
+    sf_time = pl.read_csv(NOTEBOOK_PUBLIC_DIR / "futuristic_fiction.csv")
+    sf_time_multiyear = sf_time.filter(pl.col("multiyears").is_not_null())
+    sf_time
+    return sf_time, sf_time_multiyear
+
+
+@app.cell
+def _(mo, sf_time, sf_time_multiyear):
+    mo.md(
+        f"""{sf_time.height:,} records; {sf_time_multiyear.height:,} with multiple years"""
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(Undate, UndateInterval, pl, sf_time_multiyear):
+    # next... start parsing. interval? set of years? maybe start with min/max interval as a first pass
+
+
+    def parse_multiyear(value):
+        # print(value)
+        if value == "20th century":
+            value = "1901/2000"
+
+        # TODO: range and comma: 1982/1983, 1988
+
+        elif "-" in value:
+            value = value.replace("-", "/")
+        elif "," in value:
+            try:
+                # strip out non-numerics?
+                years = [int(v.strip()) for v in value.split(",")]
+                value = f"{min(years)}/{max(years)}"
+            except ValueError as err:
+                # print(err)
+                return
+        try:
+            interval = Undate.parse(value, "EDTF")
+            # it's possible that this returns an undate or an undate interval
+            # convert to an interval so the structure is the same
+            if isinstance(interval, Undate):
+                interval = UndateInterval(interval.earliest, interval.latest)
+
+            earliest = interval.earliest
+            latest = interval.latest
+
+            # debugging
+            # print(
+            #     f"{interval} {interval.__class__} earliest {interval.earliest} ({interval.earliest.__class__}) latest {interval.latest} ({interval.latest.__class__})"
+            # )
+            dictreturn = {
+                # nested objects not allowed
+                "undate_interval": str(interval),
+                "interval_earliest": int(earliest.year),
+                "interval_latest": int(latest.year),
+            }
+            # print(dictreturn)
+            return dictreturn
+        except ValueError as err:
+            # print(err)
+            return {
+                "undate_interval": None,
+                "interval_earliest": None,
+                "interval_latest": None,
+            }
+
+
+    sf_time_multiyear_undate = (
+        sf_time_multiyear.with_columns(
+            undate_parsing=pl.col("multiyears").map_elements(
+                parse_multiyear,  # return_dtype=pl.Struct #return_dtype=pl.datatypes.Object
+                return_dtype=pl.Struct(
+                    [
+                        pl.Field(
+                            "undate_interval", pl.datatypes.String
+                        ),  # pl.datatypes.Object),
+                        pl.Field("interval_earliest", pl.datatypes.Int64),
+                        pl.Field("interval_latest", pl.datatypes.Int64),
+                    ]
+                ),
+            )
+        )
+        .unnest("undate_parsing")
+        .with_columns(
+            years_distant_min=pl.col("interval_earliest").sub(pl.col("released")),
+            years_distant_max=pl.col("interval_latest").sub(pl.col("released")),
+            duration=pl.col("interval_latest").sub(pl.col("interval_earliest")),
+        )
+    )
+
+    # ).select(
+    #     "title",
+    #     "creator",
+    #     "released",
+    #     "year_set",
+    #     "years_distant",
+    #     "multiyears",
+    #     "undate_interval",
+    #     "interval_start",
+    #     "interval_end",
+    # )
+    sf_time_multiyear_undate.select(
+        "title",
+        "creator",
+        "released",
+        "year_set",
+        "years_distant",
+        "multiyears",
+        "undate_interval",
+        "interval_earliest",
+        "interval_latest",
+        "years_distant_min",
+        "years_distant_max",
+        "duration",
+    )
+    return (sf_time_multiyear_undate,)
+
+
+@app.cell
+def _(alt, sf_time_multiyear_undate):
+    # TODO: filter to parsed dates, to avoid confusion with mid points not represented
+    base_chart = alt.Chart(sf_time_multiyear_undate)
+
+    year_range_chart = base_chart.mark_bar(opacity=0.8, color="#7570b3").encode(
+        x=alt.X(
+            "interval_earliest", title="Years work set (multiyear works)"
+        ).scale(type="log"),
+        x2="interval_latest",
+        y=alt.Y("released", title="Year Released").axis(format="r"),
+        tooltip=["title", "creator", "multiyears"],
+    )
+    year_midpoint_chart = base_chart.mark_point(
+        color="#17becf", opacity=0.7
+    ).encode(x=alt.X("year_set").scale(type="log"), y="released")
+
+    (year_range_chart + year_midpoint_chart).interactive()
+    return
+
+
+@app.cell
+def _(alt, pl, sf_time_multiyear_undate):
+    # now graph years distant
+    base_distance_chart = alt.Chart(
+        sf_time_multiyear_undate.filter(pl.col("undate_interval").is_not_null())
+    )
+
+    # common configuration for x-axis
+    x_axis_released = (
+        alt.X("released", title="Year Released").axis(format="r").scale(nice=False)
+    )
+
+    years_distant_range_chart = base_distance_chart.mark_bar(
+        color="#7570b3"
+    ).encode(
+        y=alt.Y("years_distant_min", title="Years in the future"),
+        y2="years_distant_max",
+        x=x_axis_released,
+        tooltip=["title", "creator"],
+    )
+
+    # tableau orange #f58518
+
+    years_distant_midpoint_chart = base_distance_chart.mark_circle(
+        color="#17becf", opacity=0.3
+    ).encode(
+        y=alt.Y("years_distant"),
+        x=x_axis_released,
+    )
+
+    (years_distant_range_chart + years_distant_midpoint_chart).interactive()
+    return base_distance_chart, x_axis_released
+
+
+@app.cell
+def _(alt, base_distance_chart, x_axis_released):
+    # customize opacity based on the duration
+    # wider span == less opacity
+    opacity_condition = {
+        "condition": [
+            {"test": "datum.duration <= 100", "value": 1.0},
+            {"test": "datum.duration <= 500", "value": 0.9},
+            {"test": "datum.duration <= 1000", "value": 0.7},
+            {"test": "datum.duration <= 10000", "value": 0.5},
+        ],
+        "value": 0.4,
+    }
+
+    years_distant_1k_chart = base_distance_chart.mark_bar(
+        clip=True, color="#7570b3"
+    ).encode(
+        y=alt.Y("years_distant_min", title="Years in the future").scale(
+            domain=(-50, 1000)
+        ),
+        y2="years_distant_max",
+        x=x_axis_released,
+        tooltip=[
+            "title",
+            "creator",
+            "multiyears",
+            "years_distant",
+            "years_distant_min",
+            "years_distant_max",
+        ],
+        opacity=opacity_condition,
+    )
+
+    years_distant_1k_midpoint_chart = base_distance_chart.mark_circle(
+        color="#17becf", opacity=0.3, clip=True
+    ).encode(
+        y=alt.Y("years_distant"),
+        x=x_axis_released,
+    )
+
+    # chart works by year released
+    # tableau red #e45756
+    works_by_year_released = (
+        base_distance_chart.mark_line(interpolate="monotone", color="#d62728")
+        .encode(
+            y=alt.Y("count(title)", title="# Works"), x=x_axis_released.axis(None)
+        )  # don't display x-axis, since will be combined
+        .properties(height=100, width=900)
+    )
+
+    (
+        works_by_year_released
+        & (years_distant_1k_chart + years_distant_1k_midpoint_chart).properties(
+            width=900
+        )
+    ).interactive()
     return
 
 
@@ -1464,7 +1609,7 @@ def _(mo):
     - Koeser, Rebecca Sutton & Kotin, Joshua. (2025). Shakespeare and Company Project Datasets [Data set]. Version 2. Princeton University. https://doi.org/10.34770/kf6c-b079 {my_icons.dataset}
     - Kotin, Joshua and Rebecca Sutton Koeser. 2022. Shakespeare and Company Project Data Sets. _Journal of Cultural Analytics_ 7, no. 1 (February). https://doi.org/10.22148/001c.32551 {my_icons.article}
     - Rustow, Marina, Rebecca Sutton Koeser, Rachel Richman, Ksenia Ryzhova, Amel Bensalim, and Abdellatif Mohamed. “Princeton Geniza Project dataset”. Zenodo, July 8, 2025. https://doi.org/10.5281/zenodo.15839056 {my_icons.dataset}
-
+    - Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/CNJV1733p4520221212. {my_icons.dataset}
     ------
 
     #### Icon Legend
@@ -1480,6 +1625,10 @@ def _(mo):
                 gap=1,
                 justify="start",
             ),
+            mo.md("""--- 
+            Made with Marimo, Polars, Altair, and undate
+        
+            Rebecca Sutton Koeser, :copyright: 2025"""),
         ]
     )
     return
