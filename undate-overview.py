@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.15.0"
+__generated_with = "0.16.5"
 app = marimo.App(
     width="medium",
     app_title="Undate: computing with uncertain and partially-unknown dates",
@@ -1100,7 +1100,7 @@ def _(mo, pgp_month_calendar_chart, pgp_weekday_chart):
                 [
                     mo.md(
                         r""""For instance, how are the documents distributed over the different months?"
-            
+
                 There's a month 13 that doesn't exist in the Islamic calendar, shows up on the Hebrew calendar with much fewer documents — that's because the Hebrew calendar includes a leap _month_. Because that month doesn't happen every year, we would expect to see far fewer documents - as evidenced in the heatmap."""
                     ),
                     pgp_month_calendar_chart,
@@ -1115,7 +1115,7 @@ def _(mo, pgp_month_calendar_chart, pgp_weekday_chart):
     The results show that **Legal documents** are the most likely to be precisely dated. 
 
     Monday and Thursday are the other convening days for court sessions, which have noticeably more documents. Saturday is the Hebrew Shabbat, and as we would expect there are fewer documents.
-                    
+
                         """
                     ),
                 ]
@@ -1286,7 +1286,7 @@ def _(Undate, UndateInterval, mo, pl, sf_time_multiyear):
         [
             mo.md(
                 """In this filtered version of the data, we've used `undate` to parse the **multiyears** field in the data into intervals, and calculated min and max values for the **years_distant** betwen year of release and year the work is set.
-            
+
                 The data does include some non-sequential spans, but for simplicity in this case we treat it as the range covering of the earliest and latest dates.
                 """
             ),
