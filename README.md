@@ -36,6 +36,10 @@ marimo export html-wasm undate-overview.py -o docs --mode edit
 ```
 
 
+To generate static html export:
+```sh
+marimo export html undate-overview.py -o undate-overview.html
+```
 ### Scripts
 
 A utility script (`filter_data.py`) was added to pre-filter data used by the notebook,
