@@ -12,10 +12,11 @@ app = marimo.App(
 def _():
     import marimo as mo
     import pandas as pd  # for min/max date range
+    import altair as alt
 
     # path to public directory relative to this notebook
     NOTEBOOK_PUBLIC_DIR = mo.notebook_location() / "public"
-    return NOTEBOOK_PUBLIC_DIR, mo, pd
+    return NOTEBOOK_PUBLIC_DIR, alt, mo, pd
 
 
 @app.cell(hide_code=True)
@@ -62,10 +63,11 @@ def _(mo, undate_version):
                 [
                     mo.md("""**Rebecca Sutton Koeser**<br/>
     Lead Research Software Engineer, Center for Digital Humanities @ Princeton</br>
-    *US-RSE'25 notebook presentation*
+    *US-RSE'25 notebook presentation* | available online: [https://rlskoeser.github.io/undate-notebook-usrse25/](https://rlskoeser.github.io/undate-notebook-usrse25/)
             """),
-                    mo.md(f"`undate` v{undate_version}"),
-                ]
+                    mo.md(f"""`undate` v{undate_version}                """),
+                ],
+                justify="space-between",
             ),
         ]
     )
@@ -932,11 +934,11 @@ def _(alt, borrow_events, member_opt, mo, pl, raincloud_plot):
 
 
 @app.cell(hide_code=True)
-def _(NOTEBOOK_PUBLIC_DIR, pd):
+def _(NOTEBOOK_PUBLIC_DIR, pl):
     # load a copy of PGP document data from the assets folder
     # pre-filtered to documents with standardized format, supported calendars, and subset of fields
     # see filter script for specifics
-    docs_with_docdate = pd.read_csv(
+    docs_with_docdate = pl.read_csv(
         str(NOTEBOOK_PUBLIC_DIR / "pgp_dated_documents.csv")
     )
     return (docs_with_docdate,)
@@ -958,64 +960,34 @@ def _(docs_with_docdate, mo):
     """
             ),
             docs_with_docdate.head(10),
-            docs_with_docdate.doc_date_calendar.value_counts(),
+            docs_with_docdate["doc_date_calendar"].value_counts(),
         ]
     )
     return
 
 
 @app.cell(hide_code=True)
-def _(Undate, docs_with_docdate):
+def _(Undate, docs_with_docdate, pl):
     # Use undate to parse the original dates based on calendar
 
     from lark.exceptions import UnexpectedEOF, VisitError
 
 
-    def parse_original_date(row):
-        if row.doc_date_calendar == "Anno Mundi":
+    def parse_original_date(doc_date_calendar, doc_date_original):
+        if doc_date_calendar == "Anno Mundi":
             undate_calendar = "Hebrew"
-        elif row.doc_date_calendar == "Hijrī":
+        elif doc_date_calendar == "Hijrī":
             undate_calendar = "Islamic"
-        elif row.doc_date_calendar == "Seleucid":
+        elif doc_date_calendar == "Seleucid":
             undate_calendar = "Seleucid"
 
         try:
-            return Undate.parse(row.doc_date_original, undate_calendar)
+            return Undate.parse(doc_date_original, undate_calendar)
         except (VisitError, ValueError, UnexpectedEOF):
             # we don't support parsing everything in this dataset, and some of them have errors
             # for demonstration purposes, ignore anything we can't parse
             pass
 
-
-    docs_with_docdate["undate_orig"] = docs_with_docdate.apply(
-        parse_original_date, axis=1
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(docs_with_docdate):
-    # limit to the records that were successfully parsed
-    docs_with_undate = docs_with_docdate[
-        docs_with_docdate.undate_orig.notna()
-    ].copy()
-    return (docs_with_undate,)
-
-
-@app.cell(hide_code=True)
-def _(docs_with_undate):
-    # compare undate standardized earliest/latest values with the standardized dates in the dataset
-
-    docs_with_undate["undate_earliest"] = docs_with_undate.undate_orig.apply(
-        lambda x: x.earliest
-    ).astype("datetime64[s]")
-    docs_with_undate["undate_latest"] = docs_with_undate.undate_orig.apply(
-        lambda x: x.latest
-    ).astype("datetime64[s]")
-
-    docs_with_undate["orig_date_precision"] = docs_with_undate.undate_orig.apply(
-        lambda x: str(x.precision).lower()
-    )
 
     days = [
         "Monday",
@@ -1027,10 +999,51 @@ def _(docs_with_undate):
         "Sunday",
     ]
 
-    docs_with_undate["undate_weekday"] = docs_with_undate.undate_orig.apply(
-        lambda x: days[x.earliest.weekday] if x.earliest == x.latest else None
+
+    docs_with_undate = (
+        docs_with_docdate.with_columns(
+            undate_orig=pl.struct(
+                "doc_date_calendar", "doc_date_original"
+            ).map_elements(
+                lambda x: parse_original_date(
+                    x["doc_date_calendar"], x["doc_date_original"]
+                ),
+                return_dtype=pl.Object,
+            )
+        )
+        .filter(
+            # limit to the records that were successfully parsed
+            pl.col("undate_orig").is_not_null()
+        )
+        .with_columns(
+            # compare undate standardized earliest/latest values with the standardized dates in the dataset
+            undate_earliest=pl.col("undate_orig").map_elements(
+                lambda x: x.earliest, return_dtype=pl.datatypes.Object
+            ),
+            undate_latest=pl.col("undate_orig").map_elements(
+                lambda x: x.latest, return_dtype=pl.datatypes.Object
+            ),
+            orig_date_precision=pl.col("undate_orig").map_elements(
+                lambda x: str(x.precision).lower(),
+                return_dtype=pl.datatypes.String,
+            ),
+            # determine weekday when possible
+            undate_weekday=pl.col("undate_orig").map_elements(
+                lambda x: days[x.earliest.weekday]
+                if x.earliest == x.latest
+                else None,
+                return_dtype=pl.datatypes.String,
+            ),
+            # get numeric month in original calendar, when known
+            undate_month=pl.col("undate_orig").map_elements(
+                lambda x: int(x.month) if x.month else None,
+                return_dtype=pl.datatypes.Int8,
+            ),
+        )
     )
-    return (days,)
+
+    docs_with_undate
+    return days, docs_with_undate
 
 
 @app.cell(hide_code=True)
@@ -1063,19 +1076,14 @@ def _(docs_with_undate, mo):
 
 
 @app.cell(hide_code=True)
-def _(docs_with_undate):
-    import altair as alt
-
-    # get numeric month
-    docs_with_undate["undate_month"] = docs_with_undate.undate_orig.apply(
-        lambda x: x.month
-    )
-
-    docs_with_month = docs_with_undate[docs_with_undate.undate_month.notna()]
+def _(alt, docs_with_undate, pl):
+    docs_with_month = docs_with_undate.filter(pl.col("undate_month").is_not_null())
 
 
     pgp_month_calendar_chart = (
-        alt.Chart(docs_with_month[["undate_month", "pgpid", "doc_date_calendar"]])
+        alt.Chart(
+            docs_with_month.select("undate_month", "pgpid", "doc_date_calendar")
+        )
         .mark_rect()
         .encode(
             alt.X("undate_month", title="month"),
@@ -1084,7 +1092,7 @@ def _(docs_with_undate):
         .facet(row=alt.Facet("doc_date_calendar", title="Original Calendar"))
         .properties(title="Document frequency by month and calendar")
     )
-    return alt, pgp_month_calendar_chart
+    return (pgp_month_calendar_chart,)
 
 
 @app.cell(hide_code=True)
@@ -1126,24 +1134,19 @@ def _(mo, pgp_month_calendar_chart, pgp_weekday_chart):
 
 
 @app.cell(hide_code=True)
-def _():
-    # uncomment to view a list of parsed dates with day-level precision
-    # docs_with_undate[docs_with_undate.orig_date_precision == "day"][
-    #     ["type", "undate_weekday", "pgpid"]
-    # ]
-    return
-
-
-@app.cell(hide_code=True)
-def _(alt, days, docs_with_undate):
-    pgp_weekday_chart = (
-        alt.Chart(
-            docs_with_undate[docs_with_undate.orig_date_precision == "day"][
-                docs_with_undate.type.isin(
-                    ["Letter", "Legal document", "State document", "List or table"]
-                )
-            ][["type", "undate_weekday", "pgpid"]]
+def _(alt, days, docs_with_undate, pl):
+    # filter to parsed dates with day-level precision
+    # limit by document type for types with enough day-precision events to chart
+    pgp_weekday_docs = docs_with_undate.filter(
+        pl.col("orig_date_precision").eq("day")
+    ).filter(
+        pl.col("type").is_in(
+            ["Letter", "Legal document", "State document", "List or table"]
         )
+    )
+
+    pgp_weekday_chart = (
+        alt.Chart(pgp_weekday_docs.select("type", "undate_weekday", "pgpid"))
         .mark_rect()
         .encode(
             alt.X("undate_weekday", sort=days, title="weekday"),
