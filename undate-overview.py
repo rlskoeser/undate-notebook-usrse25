@@ -13,10 +13,11 @@ def _():
     import marimo as mo
     import pandas as pd  # for min/max date range
     import altair as alt
+    import re
 
     # path to public directory relative to this notebook
     NOTEBOOK_PUBLIC_DIR = mo.notebook_location() / "public"
-    return NOTEBOOK_PUBLIC_DIR, alt, mo, pd
+    return NOTEBOOK_PUBLIC_DIR, alt, mo, pd, re
 
 
 @app.cell(hide_code=True)
@@ -1201,23 +1202,50 @@ def _(mo, sf_time, sf_time_multiyear):
 
 
 @app.cell(hide_code=True)
-def _(Undate, UndateInterval, mo, pl, sf_time_multiyear):
+def _(Undate, UndateInterval, mo, pl, re, sf_time_multiyear):
     # next... start parsing. interval? set of years? maybe start with min/max interval as a first pass
 
 
     def parse_multiyear(value):
         # print(value)
+        # handle some special cases
         if value == "20th century":
             value = "1901/2000"
+        elif value == "Early in the 20th century":
+            # based on:  Early: 00s, 10s, and 20s Mid: 30s, 40s, 50s, and 60s Late: 70s, 80s, and 90s
+            value = "1901/1929"
+        elif value == "Early 21st century":
+            value = "2001/2029"
+        elif value == "The late 20th century":
+            value = "1970/1999"
+        elif value == "Late 1910s":
+            value = "1917/1919"
+        elif value == "1990s":
+            value = "199X"
+        elif value == "1980s-1990s":
+            value = "1980/1999"
 
-        # TODO: range and comma: 1982/1983, 1988
+        # a couple of multidigit years have commas; remove them
+        value = re.sub(r"(\d+),(\d{3})", r"\1\2", value)
 
-        elif "-" in value:
+        # ignore circa values so we can parse (could padd...)
+        if "c. " in value:
+            value = value.replace("c. ", "")
+        elif "ca. " in value:
+            value = value.replace("ca. ", "")
+        if " and " in value:  # one value has and instead of a comma
+            value = value.replace(" and ", ", ")
+
+        # NOTE: we don't handle range and comma: 1982/1983, 1988
+
+        if "-" in value:
             value = value.replace("-", "/")
-        elif "," in value:
+
+        if "," in value:
             try:
                 # strip out non-numerics?
-                years = [int(v.strip()) for v in value.split(",")]
+                # split on comma or / since some contain both
+                years = [int(v.strip()) for v in re.split(r",|/", value)]
                 value = f"{min(years)}/{max(years)}"
             except ValueError as err:
                 # print(err)
