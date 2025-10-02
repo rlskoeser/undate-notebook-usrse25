@@ -33,7 +33,7 @@ async def _():
         await micropip.install(
             "https://www.piwheels.org/simple/pymeeus/PyMeeus-0.5.12-py3-none-any.whl#sha256=3fb4b35e1efa77bcde9c858f5749f2eb0b315a53caba7825d25b89cf24c1b47f"
         )
-        await micropip.install("undate")
+        await micropip.install("undate>=0.5.2")
 
     import polars as pl
 

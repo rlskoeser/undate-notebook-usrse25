@@ -2533,16 +2533,16 @@ wheels = [
 
 [[package]]
 name = "undate"
-version = "0.5.1"
+version = "0.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "convertdate" },
     { name = "lark", extra = ["interegular"] },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/41/49e370e5d1e4cfe36b6d0ceb66382cef71052bff5b567aa114abe3df51db/undate-0.5.1.tar.gz", hash = "sha256:4e7ffea3077933472f8e2c3390643a62b8962fda7f574eecbd337a4438321b48", size = 46502, upload-time = "2025-07-22T17:51:29.072Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/d5/f423fff7a16d89dfa27480b8ee4e59241fe75df79bc49c5159e3f0484d98/undate-0.5.2.tar.gz", hash = "sha256:29587f9d7dedf145d733e40b1b0da4e51a9d13c4e4619e6238d6c2195294926c", size = 48316, upload-time = "2025-10-02T22:21:03.998Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/94/e6c8c0c290815d73d11032f2e656f9978660e193bbc862f90f341d1cace2/undate-0.5.1-py3-none-any.whl", hash = "sha256:3e946621cdf434697c2cec525328f4f3c2569b2b0b341f1bf1d65ca49e20d775", size = 42399, upload-time = "2025-07-22T17:51:27.732Z" },
+    { url = "https://files.pythonhosted.org/packages/34/3b/affc12d50055283a6b25640f6b14c61fb6c9a7bb0d5a1d8b4dd6cfa83649/undate-0.5.2-py3-none-any.whl", hash = "sha256:8a73cbcbdf7ada0a92300a453136373dad8044a7a041fee7b84068ff96ec2665", size = 43254, upload-time = "2025-10-02T22:21:02.9Z" },
 ]
 
 [[package]]
@@ -2568,12 +2568,12 @@ requires-dist = [
     { name = "datapackage", specifier = ">=1.15.4" },
     { name = "dplib-py", extras = ["polars"], specifier = ">=1.1.0" },
     { name = "jupyterlab", specifier = ">=4.4.2" },
-    { name = "marimo", specifier = ">=0.15.0" },
+    { name = "marimo", specifier = ">=0.16.5" },
     { name = "pandas", specifier = ">=2.3.2" },
     { name = "polars", specifier = ">=1.32.3" },
     { name = "pyarrow", specifier = ">=21.0.0" },
     { name = "ruff", specifier = ">=0.12.11" },
-    { name = "undate", specifier = ">=0.4.0" },
+    { name = "undate", specifier = ">=0.5.2" },
 ]
 
 [[package]]
