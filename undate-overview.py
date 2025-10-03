@@ -1286,6 +1286,7 @@ def _(Undate, UndateInterval, mo, pl, re, sf_time_multiyear):
         sf_time_multiyear.with_columns(
             undate_parsing=pl.col("multiyears").map_elements(
                 parse_multiyear,  # return_dtype=pl.Struct #return_dtype=pl.datatypes.Object
+                skip_nulls=False,  # without, causes error on html+wasm version 
                 return_dtype=pl.Struct(
                     [
                         pl.Field(
