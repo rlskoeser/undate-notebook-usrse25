@@ -267,7 +267,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alt, cmp_opt, mo, pd, sample_dates):
+def _(alt, cmp_opt, mo, pl, sample_dates):
     from itertools import combinations
 
 
@@ -323,7 +323,7 @@ def _(alt, cmp_opt, mo, pd, sample_dates):
     for d1 in sample_dates:
         results.append(compare(d1, d1))
 
-    date_comparison_df = pd.DataFrame(data=results)
+    date_comparison_df = pl.DataFrame(data=results)
 
     mo.vstack(
         [
