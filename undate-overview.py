@@ -1286,7 +1286,7 @@ def _(Undate, UndateInterval, mo, pl, re, sf_time_multiyear):
         sf_time_multiyear.with_columns(
             undate_parsing=pl.col("multiyears").map_elements(
                 parse_multiyear,  # return_dtype=pl.Struct #return_dtype=pl.datatypes.Object
-                skip_nulls=False,  # without, causes error on html+wasm version 
+                skip_nulls=False,  # without, causes error on html+wasm version
                 return_dtype=pl.Struct(
                     [
                         pl.Field(
@@ -1547,7 +1547,7 @@ def _(mo):
     - Koeser, Rebecca Sutton & Kotin, Joshua. (2025). Shakespeare and Company Project Datasets [Data set]. Version 2. Princeton University. https://doi.org/10.34770/kf6c-b079 {my_icons.dataset}
     - Kotin, Joshua and Rebecca Sutton Koeser. 2022. Shakespeare and Company Project Data Sets. _Journal of Cultural Analytics_ 7, no. 1 (February). https://doi.org/10.22148/001c.32551 {my_icons.article}
     - Rustow, Marina, Rebecca Sutton Koeser, Rachel Richman, Ksenia Ryzhova, Amel Bensalim, and Abdellatif Mohamed. “Princeton Geniza Project dataset”. Zenodo, July 8, 2025. https://doi.org/10.5281/zenodo.15839056 {my_icons.dataset}
-    - Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/CNJV1733p4520221212. {my_icons.dataset}"""),
+    - Wythoff, Grant, and Theodore Leane. 2025. “Time Horizons of Futuristic Fiction.” Edited by Alexander Manshel, J.D. Porter, and Melanie Walsh. Post45 Data Collective, June. https://doi.org/10.18737/552626. {my_icons.dataset}"""),
         ]
     )
     return
