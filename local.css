@@ -1,4 +1,4 @@
 :root {
-	/* make the dark background not quite as dark, for readabilty */
-    --background: light-dark(#fff,#1d202f);
+	/* make the dark background not quite as dark, for readability */
+    --background: light-dark(#e2e5f5,#1d202f);
 }
