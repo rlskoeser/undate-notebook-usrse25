@@ -1037,8 +1037,8 @@ def _(Undate, docs_with_docdate, pl):
             ),
             # get numeric month in original calendar, when known
             undate_month=pl.col("undate_orig").map_elements(
-                lambda x: int(x.month) if x.month else None,
-                return_dtype=pl.datatypes.Int8,
+                lambda x: x.month,
+                return_dtype=pl.datatypes.String,
             ),
         )
     )
@@ -1091,6 +1091,7 @@ def _(alt, docs_with_undate, pl):
             alt.Color("count(pgpid)", title="# of documents"),
         )
         .facet(row=alt.Facet("doc_date_calendar", title="Original Calendar"))
+        .resolve_scale(color="independent")
         .properties(title="Document frequency by month and calendar")
     )
     return (pgp_month_calendar_chart,)
