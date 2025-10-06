@@ -539,7 +539,7 @@ def _(mo, parse_edtf_examples_df):
         [
             mo.md(
                 r"""
-    ### Extendend Date Time Format
+    ### Extended Date Time Format
 
     Since the EDTF format includes both dates and intervals, parsing an EDTF can return either an `Undate` or an `UndateInterval`.  
 
